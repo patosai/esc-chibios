@@ -19,6 +19,8 @@
 #include "rt_test_root.h"
 #include "oslib_test_root.h"
 
+#include "led.h"
+
 /*
  * This is a periodic thread that does absolutely nothing except flashing
  * a LED.
@@ -36,11 +38,7 @@ static THD_FUNCTION(Thread1, arg) {
   }
 }
 
-/*
- * Application entry point.
- */
-int main(void) {
-
+static void init(void) {
   /*
    * System initializations.
    * - HAL initialization, this also initializes the configured device drivers
@@ -51,13 +49,23 @@ int main(void) {
   halInit();
   chSysInit();
 
+  led_init();
+
   /*
    * Activates the serial driver 2 using the driver default configuration.
    * PA2(TX) and PA3(RX) are routed to USART2.
    */
-  sdStart(&SD2, NULL);
+//  sdStart(&SD2, NULL);
+
   palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));
   palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
+}
+
+/*
+ * Application entry point.
+ */
+int main(void) {
+  init();
 
   /*
    * Creates the example thread.

@@ -119,6 +119,7 @@ LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CSRC = $(ALLCSRC) \
+       $(wildcard src/*.c) \
        $(TESTSRC) \
        main.c
 
@@ -133,7 +134,7 @@ ASMSRC = $(ALLASMSRC)
 ASMXSRC = $(ALLXASMSRC)
 
 # Inclusion directories.
-INCDIR = $(CONFDIR) $(ALLINC) $(TESTINC)
+INCDIR = $(CONFDIR) $(ALLINC) src/ $(TESTINC)
 
 # Define C warning options here.
 CWARN = -Wall -Wextra -Wundef -Wstrict-prototypes
