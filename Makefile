@@ -83,13 +83,13 @@ endif
 #
 
 # Define project name here
-PROJECT = ch
+PROJECT = esc
 
 # Target settings.
 MCU  = cortex-m4
 
 # Imported source files and paths.
-CHIBIOS  := ChibiOS_19.1.3/
+CHIBIOS  := ChibiOS/
 CONFDIR  := ./cfg
 BUILDDIR := ./build
 DEPDIR   := ./.dep
