@@ -12,6 +12,11 @@ void serial_init(void) {
                  ;
   uint16_t CR2 = 0; // no DMA, interrupts
 
+  palSetPadMode(GPIOB, 12, PAL_MODE_ALTERNATE(5));
+  palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5));
+  palSetPadMode(GPIOB, 14, PAL_MODE_ALTERNATE(5));
+  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5));
+
   SPIConfig config = {
     false, // circular buffer, might need to also be enabled in halconf.h
     NULL, // complete callback
