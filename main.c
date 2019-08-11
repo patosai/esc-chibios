@@ -20,6 +20,7 @@
 #include "oslib_test_root.h"
 
 #include "led.h"
+#include "spi.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing
@@ -50,15 +51,13 @@ static void init(void) {
   chSysInit();
 
   led_init();
+  spi2_init();
 
   /*
    * Activates the serial driver 2 using the driver default configuration.
    * PA2(TX) and PA3(RX) are routed to USART2.
    */
 //  sdStart(&SD2, NULL);
-
-  palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));
-  palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
 }
 
 /*
