@@ -16,8 +16,6 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "rt_test_root.h"
-#include "oslib_test_root.h"
 
 #include "led.h"
 #include "spi.h"
@@ -26,15 +24,17 @@
  * This is a periodic thread that does absolutely nothing except flashing
  * a LED.
  */
-static THD_WORKING_AREA(waThread1, 128);
-static THD_FUNCTION(Thread1, arg) {
-
+static THD_WORKING_AREA(waThreadLedBlinker, 128);
+static THD_FUNCTION(ThreadLedBlinker, arg) {
   (void)arg;
-  chRegSetThreadName("blinker");
+  chRegSetThreadName("led_blinker");
   while (true) {
-    palSetPad(GPIOD, GPIOD_LED3);       /* Orange.  */
+//    led_turn_on_c8_led();
+    led_turn_on_discovery_led();
     chThdSleepMilliseconds(500);
-    palClearPad(GPIOD, GPIOD_LED3);     /* Orange.  */
+
+//    led_turn_off_c8_led();
+    led_turn_off_discovery_led();
     chThdSleepMilliseconds(500);
   }
 }
@@ -69,7 +69,7 @@ int main(void) {
   /*
    * Creates the example thread.
    */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+  chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), NORMALPRIO, ThreadLedBlinker, NULL);
 
   /*
    * Normal main() thread activity, in this demo it does nothing except
@@ -77,9 +77,7 @@ int main(void) {
    */
   while (true) {
     if (palReadPad(GPIOA, GPIOA_BUTTON)) {
-      test_execute((BaseSequentialStream *)&SD2, &rt_test_suite);
-      test_execute((BaseSequentialStream *)&SD2, &oslib_test_suite);
     }
-    chThdSleepMilliseconds(500);
+    chThdSleepMilliseconds(1000);
   }
 }

@@ -15,6 +15,10 @@ void led_init(void) {
   palClearPad(GPIOC, 10);
   palClearPad(GPIOE, 0);
   palClearPad(GPIOE, 1);
+
+  // for discovery purposes
+  palSetPadMode(GPIOD, 12, PAL_MODE_OUTPUT_PUSHPULL);
+  palClearPad(GPIOD, 12);
 }
 
 void led_turn_on_c8_led(void) {
@@ -23,4 +27,12 @@ void led_turn_on_c8_led(void) {
 
 void led_turn_off_c8_led(void) {
   palClearPad(GPIOC, 8);
+}
+
+void led_turn_on_discovery_led(void) {
+  palSetPad(GPIOD, 12);
+}
+
+void led_turn_off_discovery_led(void) {
+  palClearPad(GPIOD, 12);
 }

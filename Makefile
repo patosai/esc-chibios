@@ -184,6 +184,8 @@ include $(RULESPATH)/rules.mk
 ##############################################################################
 # Custom rules
 #
+flash: all
+	st-flash --format ihex write build/$(PROJECT).hex
 
 #
 # Custom rules
