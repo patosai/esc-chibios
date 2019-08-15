@@ -19,6 +19,7 @@
 
 #include "led.h"
 #include "spi.h"
+#include "usart.h"
 
 /*
  * This is a periodic thread that does absolutely nothing except flashing
@@ -52,6 +53,7 @@ static void init(void) {
 
   led_init();
   spi2_init();
+  usart1_init();
 
   /*
    * Activates the serial driver 2 using the driver default configuration.
