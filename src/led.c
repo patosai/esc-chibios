@@ -21,18 +21,20 @@ void led_init(void) {
   palClearPad(GPIOD, 12);
 }
 
-void led_turn_on_c8_led(void) {
-  palSetPad(GPIOC, 8);
-}
+void led_turn_on_led1(void) { palSetPad(GPIOC, 8); }
+void led_turn_off_led1(void) { palClearPad(GPIOC, 8); }
 
-void led_turn_off_c8_led(void) {
-  palClearPad(GPIOC, 8);
-}
+void led_turn_on_led2(void) { palSetPad(GPIOC, 9); }
+void led_turn_off_led2(void) { palClearPad(GPIOC, 9); }
 
-void led_turn_on_discovery_led(void) {
-  palSetPad(GPIOD, 12);
-}
+void led_turn_on_led3(void) { palSetPad(GPIOC, 10); }
+void led_turn_off_led3(void) { palClearPad(GPIOC, 10); }
 
-void led_turn_off_discovery_led(void) {
-  palClearPad(GPIOD, 12);
-}
+void led_turn_on_led4(void) { palSetPad(GPIOE, 0); }
+void led_turn_off_led4(void) { palClearPad(GPIOE, 0); }
+
+void led_turn_on_led5(void) { palSetPad(GPIOE, 1); }
+void led_turn_off_led5(void) { palClearPad(GPIOE, 1); }
+
+void led_turn_on_discovery_led(void) { palSetPad(GPIOD, 12); }
+void led_turn_off_discovery_led(void) { palClearPad(GPIOD, 12); }

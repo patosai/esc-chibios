@@ -3,8 +3,20 @@
 
 void led_init(void);
 
-void led_turn_on_c8_led(void);
-void led_turn_off_c8_led(void);
+void led_turn_on_led1(void);
+void led_turn_off_led1(void);
+
+void led_turn_on_led2(void);
+void led_turn_off_led2(void);
+
+void led_turn_on_led3(void);
+void led_turn_off_led3(void);
+
+void led_turn_on_led4(void);
+void led_turn_off_led4(void);
+
+void led_turn_on_led5(void);
+void led_turn_off_led5(void);
 
 void led_turn_on_discovery_led(void);
 void led_turn_off_discovery_led(void);
