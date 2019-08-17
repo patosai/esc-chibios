@@ -19,6 +19,12 @@ void led_init(void) {
   // for discovery purposes
   palSetPadMode(GPIOD, 12, PAL_MODE_OUTPUT_PUSHPULL);
   palClearPad(GPIOD, 12);
+  palSetPadMode(GPIOD, 13, PAL_MODE_OUTPUT_PUSHPULL);
+  palClearPad(GPIOD, 13);
+  palSetPadMode(GPIOD, 14, PAL_MODE_OUTPUT_PUSHPULL);
+  palClearPad(GPIOD, 14);
+  palSetPadMode(GPIOD, 15, PAL_MODE_OUTPUT_PUSHPULL);
+  palClearPad(GPIOD, 15);
 }
 
 void led_turn_on_led1(void) { palSetPad(GPIOC, 8); }
@@ -36,5 +42,16 @@ void led_turn_off_led4(void) { palClearPad(GPIOE, 0); }
 void led_turn_on_led5(void) { palSetPad(GPIOE, 1); }
 void led_turn_off_led5(void) { palClearPad(GPIOE, 1); }
 
-void led_turn_on_discovery_led(void) { palSetPad(GPIOD, 12); }
-void led_turn_off_discovery_led(void) { palClearPad(GPIOD, 12); }
+
+void led_turn_on_discovery_led_green(void) { palSetPad(GPIOD, 12); }
+void led_turn_off_discovery_led_green(void) { palClearPad(GPIOD, 12); }
+
+void led_turn_on_discovery_led_orange(void) { palSetPad(GPIOD, 13); }
+void led_turn_off_discovery_led_orange(void) { palClearPad(GPIOD, 13); }
+
+void led_turn_on_discovery_led_red(void) { palSetPad(GPIOD, 14); }
+void led_turn_off_discovery_led_red(void) { palClearPad(GPIOD, 14); }
+
+void led_turn_on_discovery_led_blue(void) { palSetPad(GPIOD, 15); }
+void led_turn_off_discovery_led_blue(void) { palClearPad(GPIOD, 15); }
+

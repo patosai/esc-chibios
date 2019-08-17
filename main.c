@@ -17,6 +17,7 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "adc.h"
 #include "led.h"
 #include "spi.h"
 #include "usart.h"
@@ -30,12 +31,10 @@ static THD_FUNCTION(ThreadLedBlinker, arg) {
   (void)arg;
   chRegSetThreadName("led_blinker");
   while (true) {
-//    led_turn_on_c8_led();
-    led_turn_on_discovery_led();
+    led_turn_on_discovery_led_green();
     chThdSleepMilliseconds(500);
 
-//    led_turn_off_c8_led();
-    led_turn_off_discovery_led();
+    led_turn_off_discovery_led_green();
     chThdSleepMilliseconds(500);
   }
 }
@@ -51,6 +50,7 @@ static void init(void) {
   halInit();
   chSysInit();
 
+  adc_init();
   led_init();
   spi2_init();
   usart1_init();
@@ -72,8 +72,9 @@ int main(void) {
    * sleeping in a loop and check the button state.
    */
   while (true) {
-    if (palReadPad(GPIOA, GPIOA_BUTTON)) {
-    }
+    led_turn_on_discovery_led_orange();
+    chThdSleepMilliseconds(1000);
+    led_turn_off_discovery_led_orange();
     chThdSleepMilliseconds(1000);
   }
 }
