@@ -5,7 +5,8 @@
 
 #include "adc.h"
 
-#define ADC_SAMPLES_SAVED_PER_CHANNEL 4
+// samples_saved be 1 or an even number
+#define ADC_SAMPLES_SAVED_PER_CHANNEL 1
 #define ADC_1_CHANNELS 3
 #define ADC_2_CHANNELS 1
 
@@ -55,17 +56,26 @@ static void start_adc_1_and_2(void) {
   adcStart(&ADCD2, NULL);
 }
 
+static void stop_adc_1_and_2(void) {
+  adcStop(&ADCD1);
+  adcStop(&ADCD2);
+}
+
 static void enable_temp_and_vref_sensors(void) {
   adcSTM32EnableTSVREFE();
 }
 
+static void disable_temp_and_vref_sensors(void) {
+  adcSTM32DisableTSVREFE();
+}
+
 void adc_init(void) {
   setup_pin_modes();
-  start_adc_1_and_2();
-  enable_temp_and_vref_sensors();
 }
 
 void adc_start_current_measurement_conversion(void) {
+  start_adc_1_and_2();
+  enable_temp_and_vref_sensors();
   adcStartConversion(&ADCD1, &adc1Config, phase_a_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
   adcStartConversion(&ADCD2, &adc2Config, phase_b_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
 }
@@ -73,4 +83,6 @@ void adc_start_current_measurement_conversion(void) {
 void adc_stop_current_measurement_conversion(void) {
   adcStopConversion(&ADCD1);
   adcStopConversion(&ADCD2);
+  disable_temp_and_vref_sensors();
+  stop_adc_1_and_2();
 }

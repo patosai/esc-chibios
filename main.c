@@ -56,6 +56,13 @@ static void init(void) {
   usart1_init();
 }
 
+static void create_threads(void) {
+  /*
+   * Creates the example thread.
+   */
+  chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), NORMALPRIO, ThreadLedBlinker, NULL);
+}
+
 /*
  * Application entry point.
  */
@@ -64,10 +71,7 @@ int main(void) {
 
   adc_start_current_measurement_conversion();
 
-  /*
-   * Creates the example thread.
-   */
-  chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), NORMALPRIO, ThreadLedBlinker, NULL);
+  create_threads();
 
   /*
    * Normal main() thread activity, in this demo it does nothing except
