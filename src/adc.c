@@ -69,11 +69,8 @@ static void disable_temp_and_vref_sensors(void) {
   adcSTM32DisableTSVREFE();
 }
 
-void adc_init(void) {
-  setup_pin_modes();
-}
-
 void adc_start_current_measurement_conversion(void) {
+  setup_pin_modes();
   start_adc_1_and_2();
   enable_temp_and_vref_sensors();
   adcStartConversion(&ADCD1, &adc1Config, phase_a_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);

@@ -50,7 +50,6 @@ static void init(void) {
   halInit();
   chSysInit();
 
-  adc_init();
   led_init();
   spi2_init();
   usart1_init();
