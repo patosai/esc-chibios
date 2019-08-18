@@ -62,6 +62,8 @@ static void init(void) {
 int main(void) {
   init();
 
+  adc_start_current_measurement_conversion();
+
   /*
    * Creates the example thread.
    */
