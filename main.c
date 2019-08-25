@@ -75,7 +75,11 @@ int main(void) {
   adc_start_current_measurement_conversion();
 
   while (true) {
-    serial2_send("Hey there! %d\r\n", 14);
+    serial2_send("phase a voltage: %.3f\r\n", adc_phase_a_voltage());
+    serial2_send("phase b voltage: %.3f\r\n", adc_phase_b_voltage());
+    serial2_send("phase c voltage: %.3f\r\n", adc_phase_c_voltage());
+//    serial2_send("phase a voltage: %d\r\n", (int)adc_phase_a_voltage());
+//    int bytes_formatted = serial2_send("phase a voltage: %f\r\n", 1);
     led_turn_on_discovery_led_orange();
     chThdSleepMilliseconds(1000);
     led_turn_off_discovery_led_orange();

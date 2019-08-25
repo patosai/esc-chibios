@@ -10,6 +10,8 @@
 #define ADC_1_CHANNELS 3
 #define ADC_2_CHANNELS 1
 
+#define ADC_VOLTAGE_FACTOR (3.3 * ((2^12) - 1))
+
 static adcsample_t phase_a_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC_1_CHANNELS];
 static adcsample_t phase_b_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC_2_CHANNELS];
 
@@ -82,4 +84,16 @@ void adc_stop_current_measurement_conversion(void) {
   adcStopConversion(&ADCD2);
   disable_temp_and_vref_sensors();
   stop_adc_1_and_2();
+}
+
+float adc_phase_a_voltage(void) {
+  return phase_a_samples[0] * ADC_VOLTAGE_FACTOR;
+}
+
+float adc_phase_b_voltage(void) {
+  return phase_b_samples[0] * ADC_VOLTAGE_FACTOR;
+}
+
+float adc_phase_c_voltage(void) {
+  return -1 * (adc_phase_a_voltage() + adc_phase_b_voltage());
 }

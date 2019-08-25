@@ -37,7 +37,7 @@ void serial_init(void) {
 
 static int serial_send(SerialDriver* driver, const char *fmt, va_list ap) {
   int formatted_bytes = chvsnprintf(buffer, USART_BUFFER_SIZE, fmt, ap);
-  sdAsynchronousWrite(driver, (uint8_t*)buffer, formatted_bytes);
+  sdWrite(driver, (uint8_t*)buffer, formatted_bytes);
   return formatted_bytes;
 }
 
