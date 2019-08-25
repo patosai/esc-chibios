@@ -10,7 +10,7 @@ static void setup_pins(void) {
   palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5));
 }
 
-static void start_spi2(void) {
+static void start_spi(void) {
   uint16_t CR1 = 1 << 0 // first clock transition is the first data capture edge
                  | 1 << 1 // clock is 0 when idle
                  | 1 << 2 // master mode
@@ -29,12 +29,12 @@ static void start_spi2(void) {
   spiStart(&SPID2, &config);
 }
 
-void spi2_init(void) {
+void spi_init(void) {
   setup_pins();
-  start_spi2();
+  start_spi();
 }
 
-void spi2_send(uint16_t n, uint8_t* buf) {
+void spi_send(uint16_t n, uint8_t* buf) {
   spiSelectI(&SPID2);
   spiStartSendI(&SPID2, n, buf);
   spiUnselectI(&SPID2);

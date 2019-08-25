@@ -1,8 +1,9 @@
 #ifndef _USART_H_
 #define _USART_H_
 
-void usart1_init(void);
+void serial_init(void);
 
-int usart1_send(const char* fmt, ...);
+int serial1_send(const char* fmt, ...);
+int serial2_send(const char* fmt, ...);
 
 #endif

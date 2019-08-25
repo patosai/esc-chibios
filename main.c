@@ -17,6 +17,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "chprintf.h"
+
 #include "adc.h"
 #include "led.h"
 #include "spi.h"
@@ -51,8 +53,8 @@ static void init(void) {
   chSysInit();
 
   led_init();
-  spi2_init();
-  usart1_init();
+  spi_init();
+  serial_init();
 }
 
 static void create_threads(void) {
@@ -68,15 +70,12 @@ static void create_threads(void) {
 int main(void) {
   init();
 
-  adc_start_current_measurement_conversion();
-
   create_threads();
 
-  /*
-   * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state.
-   */
+  adc_start_current_measurement_conversion();
+
   while (true) {
+    serial2_send("Hey there! %d\r\n", 14);
     led_turn_on_discovery_led_orange();
     chThdSleepMilliseconds(1000);
     led_turn_off_discovery_led_orange();

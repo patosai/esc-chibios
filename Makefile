@@ -185,6 +185,12 @@ include $(RULESPATH)/rules.mk
 flash: all
 	st-flash --format ihex write build/$(PROJECT).hex
 
+debug:
+	st-util
+
+gdb:
+	gdb build/$(PROJECT).elf
+
 #
 # Custom rules
 ##############################################################################
