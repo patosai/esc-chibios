@@ -24,10 +24,6 @@
 #include "spi.h"
 #include "usart.h"
 
-/*
- * This is a periodic thread that does absolutely nothing except flashing
- * a LED.
- */
 static THD_WORKING_AREA(waThreadLedBlinker, 128);
 static THD_FUNCTION(ThreadLedBlinker, arg) {
   (void)arg;
@@ -38,6 +34,17 @@ static THD_FUNCTION(ThreadLedBlinker, arg) {
 
     led_turn_off_discovery_led_green();
     chThdSleepMilliseconds(500);
+  }
+}
+
+static THD_WORKING_AREA(waThreadSerialReporting, 128);
+static THD_FUNCTION(ThreadSerialReporting, arg) {
+  (void)arg;
+  chRegSetThreadName("serial_reporting");
+  while (true) {
+    serial2_send("VREF: %.3f\r\n", adc_vref());
+    serial2_send("phase a voltage: %.3f\r\n", adc_phase_a_voltage());
+    chThdSleepMilliseconds(1000);
   }
 }
 
@@ -58,10 +65,8 @@ static void init(void) {
 }
 
 static void create_threads(void) {
-  /*
-   * Creates the example thread.
-   */
   chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), NORMALPRIO, ThreadLedBlinker, NULL);
+  chThdCreateStatic(waThreadSerialReporting, sizeof(waThreadSerialReporting), NORMALPRIO, ThreadSerialReporting, NULL);
 }
 
 /*
@@ -75,11 +80,6 @@ int main(void) {
   adc_start_current_measurement_conversion();
 
   while (true) {
-    serial2_send("phase a voltage: %.3f\r\n", adc_phase_a_voltage());
-    serial2_send("phase b voltage: %.3f\r\n", adc_phase_b_voltage());
-    serial2_send("phase c voltage: %.3f\r\n", adc_phase_c_voltage());
-//    serial2_send("phase a voltage: %d\r\n", (int)adc_phase_a_voltage());
-//    int bytes_formatted = serial2_send("phase a voltage: %f\r\n", 1);
     led_turn_on_discovery_led_orange();
     chThdSleepMilliseconds(1000);
     led_turn_off_discovery_led_orange();

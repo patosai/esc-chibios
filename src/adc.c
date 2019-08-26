@@ -86,6 +86,10 @@ void adc_stop_current_measurement_conversion(void) {
   stop_adc_1_and_2();
 }
 
+float adc_vref(void) {
+  return phase_a_samples[1] * ADC_VOLTAGE_FACTOR;
+}
+
 float adc_phase_a_voltage(void) {
   return phase_a_samples[0] * ADC_VOLTAGE_FACTOR;
 }
