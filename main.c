@@ -59,6 +59,7 @@ static void init(void) {
   halInit();
   chSysInit();
 
+  adc_init();
   led_init();
   spi_init();
   serial_init();
