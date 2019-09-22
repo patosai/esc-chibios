@@ -61,7 +61,7 @@ static void init(void) {
 
   adc_init();
   led_init();
-  spi_init();
+  spi2_init();
   serial_init();
 }
 

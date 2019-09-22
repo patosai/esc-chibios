@@ -4,7 +4,7 @@
 #include "ch.h"
 #include "hal.h"
 
-void spi_init(void);
-void spi_send(uint16_t n, uint8_t* buf);
+void spi2_init(void);
+uint16_t spi2_exchange_synchronous(uint16_t n, uint16_t txbuf);
 
 #endif
