@@ -6,6 +6,6 @@
 void drv8353rs_init(void);
 void drv8353rs_manually_calibrate(void);
 
-bool has_fault(void);
+bool drv8353rs_has_fault(void);
 
 #endif

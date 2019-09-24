@@ -97,7 +97,7 @@ void drv8353rs_manually_calibrate(void) {
 	write(ADDR_CURRENT_SENSE_CONTROL, current_sense);
 }
 
-bool has_fault(void) {
+bool drv8353rs_has_fault(void) {
 	uint16_t fault_1 = read(ADDR_FAULT_STATUS_1);
 	return fault_1 & (1 << 10);
 }
