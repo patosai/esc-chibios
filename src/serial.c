@@ -1,3 +1,5 @@
+#include "serial.h"
+
 #include <stdarg.h>
 
 #include "ch.h"
@@ -5,17 +7,16 @@
 
 #include "chprintf.h"
 
-#include "usart.h"
+#define SERIAL_BAUD_RATE 38400
+#define SERIAL_BUFFER_SIZE 1024
 
-#define USART_BUFFER_SIZE 1024
-
-static char buffer[USART_BUFFER_SIZE];
+static char buffer[SERIAL_BUFFER_SIZE];
 
 static SerialConfig config = {
-  38400,
-  0,
-  USART_CR2_STOP1_BITS,
-  0
+  .speed = SERIAL_BAUD_RATE,
+  .cr1 = 0,
+  .cr2 = USART_CR2_STOP1_BITS,
+  .cr3 = 0
 };
 
 static void serial1_init(void) {
@@ -36,7 +37,7 @@ void serial_init(void) {
 }
 
 static int serial_send(SerialDriver* driver, const char *fmt, va_list ap) {
-  int formatted_bytes = chvsnprintf(buffer, USART_BUFFER_SIZE, fmt, ap);
+  int formatted_bytes = chvsnprintf(buffer, SERIAL_BUFFER_SIZE, fmt, ap);
   sdWrite(driver, (uint8_t*)buffer, formatted_bytes);
   return formatted_bytes;
 }

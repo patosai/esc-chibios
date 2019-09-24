@@ -22,7 +22,7 @@
 #include "adc.h"
 #include "led.h"
 #include "spi.h"
-#include "usart.h"
+#include "serial.h"
 
 static THD_WORKING_AREA(waThreadLedBlinker, 128);
 static THD_FUNCTION(ThreadLedBlinker, arg) {
@@ -61,7 +61,6 @@ static void init(void) {
 
   adc_init();
   led_init();
-  spi2_init();
   serial_init();
 }
 
