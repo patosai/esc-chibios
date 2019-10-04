@@ -4,6 +4,9 @@
 #include "stdint.h"
 
 void motor_pwm_init(void);
-void motor_set_speed(uint16_t rpm);
+void motor_enable(void);
+void motor_disable(void);
+
+void motor_set_power_percentage(uint32_t power_percentage_0_to_10000);
 
 #endif

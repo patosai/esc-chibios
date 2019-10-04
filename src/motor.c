@@ -38,7 +38,26 @@ void motor_pwm_init(void) {
 	pwmStart(&PWMD1, &pwmConfig);
 }
 
-void motor_set_speed(uint16_t rpm) {
-	// TODO:w
-	(void)rpm;
+void motor_enable(void) {
+    pwmEnableChannel(&PWMD1, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, 0));
+    pwmEnableChannel(&PWMD1, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, 0));
+    pwmEnableChannel(&PWMD1, 2, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, 0));
+}
+
+void motor_disable(void) {
+    pwmDisableChannel(&PWMD1, 0);
+    pwmDisableChannel(&PWMD1, 1);
+    pwmDisableChannel(&PWMD1, 2);
+}
+
+void motor_set_power_percentage(uint32_t power_percentage_0_to_10000) {
+    power_percentage_0_to_10000 = power_percentage_0_to_10000 > 10000 ? 10000 : power_percentage_0_to_10000;
+
+    // less than 0 should never happen since it's a uint
+    //power_percentage_0_to_10000 = power_percentage_0_to_10000 < 0 ? 0 : power_percentage_0_to_10000;
+
+    // TODO the three phases can't all be activated at the same time
+    pwmEnableChannel(&PWMD1, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, power_percentage_0_to_10000));
+    pwmEnableChannel(&PWMD1, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, power_percentage_0_to_10000));
+    pwmEnableChannel(&PWMD1, 2, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, power_percentage_0_to_10000));
 }
