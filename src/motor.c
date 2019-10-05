@@ -51,7 +51,9 @@ void motor_disable(void) {
 }
 
 void motor_set_power_percentage(uint32_t power_percentage_0_to_10000) {
-    power_percentage_0_to_10000 = power_percentage_0_to_10000 > 10000 ? 10000 : power_percentage_0_to_10000;
+    if (power_percentage_0_to_10000 > 10000) {
+        power_percentage_0_to_10000 = 10000;
+    }
 
     // less than 0 should never happen since it's a uint
     //power_percentage_0_to_10000 = power_percentage_0_to_10000 < 0 ? 0 : power_percentage_0_to_10000;

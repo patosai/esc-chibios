@@ -21,6 +21,7 @@
 
 #include "adc.h"
 #include "led.h"
+#include "motor.h"
 #include "spi.h"
 #include "serial.h"
 
@@ -62,6 +63,7 @@ static void init(void) {
   adc_init();
   led_init();
   serial_init();
+  motor_pwm_init();
 }
 
 static void create_threads(void) {
@@ -78,6 +80,8 @@ int main(void) {
   create_threads();
 
   adc_start_current_measurement_conversion();
+
+  motor_set_power_percentage(3000);
 
   while (true) {
     led_turn_on_discovery_led_orange();
