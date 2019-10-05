@@ -30,10 +30,10 @@ static THD_FUNCTION(ThreadLedBlinker, arg) {
   (void)arg;
   chRegSetThreadName("led_blinker");
   while (true) {
-    led_turn_on_discovery_led_green();
+    led_2_turn_on();
     chThdSleepMilliseconds(500);
 
-    led_turn_off_discovery_led_green();
+    led_2_turn_off();
     chThdSleepMilliseconds(500);
   }
 }
@@ -61,7 +61,6 @@ static void init(void) {
   chSysInit();
 
   adc_init();
-  led_init();
   serial_init();
   motor_pwm_init();
 }
@@ -84,9 +83,9 @@ int main(void) {
   motor_set_power_percentage(3000);
 
   while (true) {
-    led_turn_on_discovery_led_orange();
+    led_1_turn_on();
     chThdSleepMilliseconds(1000);
-    led_turn_off_discovery_led_orange();
+    led_1_turn_off();
     chThdSleepMilliseconds(1000);
   }
 }

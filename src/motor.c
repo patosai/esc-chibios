@@ -14,9 +14,15 @@ void motor_pwm_init(void) {
 
 	// rewire some other pins for TIM1 PWM
 	// TODO should PAL_MODE_STM32_ALTERNATE_PUSHPULL be used?
+#ifdef DISCOVERY
+	palSetPadMode(GPIOE, 9, PAL_MODE_ALTERNATE(1)); // TIM1 channel 1
+	palSetPadMode(GPIOE, 11, PAL_MODE_ALTERNATE(1)); // TIM1 channel 2
+	palSetPadMode(GPIOE, 13, PAL_MODE_ALTERNATE(1)); // TIM1 channel 3
+#else
 	palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(1)); // TIM1 channel 1
 	palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(1)); // TIM1 channel 2
 	palSetPadMode(GPIOA, 11, PAL_MODE_ALTERNATE(1)); // TIM1 channel 3
+#endif
 
 	// low pins should be set to 1 due to 3x PWM mode
 	palSetPad(GPIOC, 4);
