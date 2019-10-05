@@ -95,20 +95,21 @@ static void disable_temp_and_vref_sensors(void) {
   adcSTM32DisableTSVREFE();
 }
 
-void adc_init(void) {
+static void adc_init(void) {
   setup_pin_modes();
   start_adc_1_and_2();
   enable_temp_and_vref_sensors();
   start_gpt_timer();
 }
 
-void adc_stop(void) {
+static void adc_stop(void) {
   stop_gpt_timer();
   disable_temp_and_vref_sensors();
   stop_adc_1_and_2();
 }
 
 void adc_start_current_measurement_conversion(void) {
+  adc_init();
   adcStartConversion(&ADCD1, &adc1Config, phase_a_samples, ADC_1_CHANNELS);
   adcStartConversion(&ADCD2, &adc2Config, phase_b_samples, ADC_2_CHANNELS);
   gptStartContinuous(&GPTD2, 100U);
@@ -118,6 +119,7 @@ void adc_stop_current_measurement_conversion(void) {
   adcStopConversion(&ADCD1);
   adcStopConversion(&ADCD2);
   gptStopTimer(&GPTD2);
+  adc_stop();
 }
 
 float adc_vref(void) {

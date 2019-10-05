@@ -3,7 +3,7 @@
 #include "ch.h"
 #include "hal.h"
 
-void motor_pwm_init(void) {
+static void motor_pwm_init(void) {
 	// due to v1 anomalies, high pins should be set to Hi-Z
 	palSetPadMode(GPIOC, 4, PAL_MODE_OUTPUT_PUSHPULL); // phase A low
 	palSetPadMode(GPIOC, 5, PAL_MODE_UNCONNECTED); // phase A high
@@ -45,6 +45,7 @@ void motor_pwm_init(void) {
 }
 
 void motor_enable(void) {
+    motor_pwm_init();
     pwmEnableChannel(&PWMD1, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, 0));
     pwmEnableChannel(&PWMD1, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, 0));
     pwmEnableChannel(&PWMD1, 2, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, 0));
@@ -62,7 +63,11 @@ void motor_set_power_percentage(uint32_t power_percentage_0_to_10000) {
     }
 
     // less than 0 should never happen since it's a uint
-    //power_percentage_0_to_10000 = power_percentage_0_to_10000 < 0 ? 0 : power_percentage_0_to_10000;
+    /*
+    if (power_percentage_0_to_10000 < 0) {
+        power_percentage_0_to_10000 = 0;
+    }
+    */
 
     // TODO the three phases can't all be activated at the same time
     pwmEnableChannel(&PWMD1, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, power_percentage_0_to_10000));

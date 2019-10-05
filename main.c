@@ -60,9 +60,7 @@ static void init(void) {
   halInit();
   chSysInit();
 
-  adc_init();
   serial_init();
-  motor_pwm_init();
 }
 
 static void create_threads(void) {
@@ -80,6 +78,7 @@ int main(void) {
 
   adc_start_current_measurement_conversion();
 
+  motor_enable();
   motor_set_power_percentage(3000);
 
   while (true) {
@@ -88,4 +87,7 @@ int main(void) {
     led_1_turn_off();
     chThdSleepMilliseconds(1000);
   }
+
+  motor_disable();
+  adc_stop_current_measurement_conversion();
 }

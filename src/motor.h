@@ -3,7 +3,6 @@
 
 #include "stdint.h"
 
-void motor_pwm_init(void);
 void motor_enable(void);
 void motor_disable(void);
 
