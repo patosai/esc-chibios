@@ -19,24 +19,13 @@ static SerialConfig config = {
   .cr3 = 0
 };
 
-static void serial1_init(void) {
+void serial1_init(void) {
   sdStart(&SD1, &config);
   palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7));
   palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7));
 }
 
-static void serial2_init(void) {
-  sdStart(&SD2, &config);
-  palSetPadMode(GPIOA, 2, PAL_MODE_ALTERNATE(7));
-  palSetPadMode(GPIOA, 3, PAL_MODE_ALTERNATE(7));
-}
-
-void serial_init(void) {
-  serial1_init();
-  serial2_init();
-}
-
-static int serial_send(SerialDriver* driver, const char *fmt, va_list ap) {
+static int send_to_driver(SerialDriver* driver, const char *fmt, va_list ap) {
   int formatted_bytes = chvsnprintf(buffer, SERIAL_BUFFER_SIZE, fmt, ap);
   sdWrite(driver, (uint8_t*)buffer, formatted_bytes);
   return formatted_bytes;
@@ -46,17 +35,7 @@ int serial1_send(const char *fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
-  int formatted_bytes = serial_send(&SD1, fmt, ap);
-  va_end(ap);
-
-  return formatted_bytes;
-}
-
-int serial2_send(const char *fmt, ...) {
-  va_list ap;
-
-  va_start(ap, fmt);
-  int formatted_bytes = serial_send(&SD2, fmt, ap);
+  int formatted_bytes = send_to_driver(&SD1, fmt, ap);
   va_end(ap);
 
   return formatted_bytes;

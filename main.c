@@ -23,7 +23,7 @@
 #include "led.h"
 //#include "motor.h"
 //#include "spi.h"
-//#include "serial.h"
+#include "serial.h"
 
 static THD_WORKING_AREA(waThreadLedBlinker, 128);
 static THD_FUNCTION(ThreadLedBlinker, arg) {
@@ -60,7 +60,7 @@ static void init(void) {
   halInit();
   chSysInit();
 
-  //serial_init();
+  serial1_init();
 }
 
 static void create_threads(void) {
