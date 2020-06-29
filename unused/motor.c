@@ -13,7 +13,6 @@ static void motor_pwm_init(void) {
 	palSetPadMode(GPIOA, 7, PAL_MODE_UNCONNECTED); // phase C high
 
 	// rewire some other pins for TIM1 PWM
-	// TODO should PAL_MODE_STM32_ALTERNATE_PUSHPULL be used?
 #ifdef DISCOVERY
 	palSetPadMode(GPIOE, 9, PAL_MODE_ALTERNATE(1)); // TIM1 channel 1
 	palSetPadMode(GPIOE, 11, PAL_MODE_ALTERNATE(1)); // TIM1 channel 2

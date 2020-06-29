@@ -19,11 +19,11 @@
 
 #include "chprintf.h"
 
-#include "adc.h"
+//#include "adc.h"
 #include "led.h"
-#include "motor.h"
-#include "spi.h"
-#include "serial.h"
+//#include "motor.h"
+//#include "spi.h"
+//#include "serial.h"
 
 static THD_WORKING_AREA(waThreadLedBlinker, 128);
 static THD_FUNCTION(ThreadLedBlinker, arg) {
@@ -37,17 +37,17 @@ static THD_FUNCTION(ThreadLedBlinker, arg) {
     chThdSleepMilliseconds(500);
   }
 }
-
-static THD_WORKING_AREA(waThreadSerialReporting, 128);
-static THD_FUNCTION(ThreadSerialReporting, arg) {
-  (void)arg;
-  chRegSetThreadName("serial_reporting");
-  while (true) {
-    serial2_send("VREF: %.3f\r\n", adc_vref());
-    serial2_send("phase a voltage: %.3f\r\n", adc_phase_a_voltage());
-    chThdSleepMilliseconds(1000);
-  }
-}
+//
+//static THD_WORKING_AREA(waThreadSerialReporting, 128);
+//static THD_FUNCTION(ThreadSerialReporting, arg) {
+//  (void)arg;
+//  chRegSetThreadName("serial_reporting");
+//  while (true) {
+//    serial2_send("VREF: %.3f\r\n", adc_vref());
+//    serial2_send("phase a voltage: %.3f\r\n", adc_phase_a_voltage());
+//    chThdSleepMilliseconds(1000);
+//  }
+//}
 
 static void init(void) {
   /*
@@ -60,12 +60,12 @@ static void init(void) {
   halInit();
   chSysInit();
 
-  serial_init();
+  //serial_init();
 }
 
 static void create_threads(void) {
   chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), NORMALPRIO, ThreadLedBlinker, NULL);
-  chThdCreateStatic(waThreadSerialReporting, sizeof(waThreadSerialReporting), NORMALPRIO, ThreadSerialReporting, NULL);
+//  chThdCreateStatic(waThreadSerialReporting, sizeof(waThreadSerialReporting), NORMALPRIO, ThreadSerialReporting, NULL);
 }
 
 /*
@@ -75,19 +75,21 @@ int main(void) {
   init();
 
   create_threads();
+//
+//  adc_start_current_measurement_conversion();
+//
+//  motor_enable();
+//  motor_set_power_percentage(3000);
 
-  adc_start_current_measurement_conversion();
-
-  motor_enable();
-  motor_set_power_percentage(3000);
+  led_4_turn_on();
 
   while (true) {
-    led_1_turn_on();
+    led_5_turn_on();
     chThdSleepMilliseconds(1000);
-    led_1_turn_off();
+    led_5_turn_off();
     chThdSleepMilliseconds(1000);
   }
 
-  motor_disable();
-  adc_stop_current_measurement_conversion();
+//  motor_disable();
+//  adc_stop_current_measurement_conversion();
 }
