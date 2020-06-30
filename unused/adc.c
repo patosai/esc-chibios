@@ -1,7 +1,6 @@
+#include <ch.h>
+#include <hal.h>
 #include <stdarg.h>
-
-#include "ch.h"
-#include "hal.h"
 
 #include "adc.h"
 

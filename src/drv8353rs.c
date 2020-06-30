@@ -33,14 +33,17 @@ static void setup_spi(void) {
 }
 
 static uint16_t read(uint8_t addr) {
+  // https://www.ti.com/lit/ds/symlink/drv8350.pdf
+  // 8.5.1.1.1 SPI Format
+  // bit 15 is R/W, bit 11-14 is address, bit 0-10 is data
 	addr &= 0b1111;
-	return spi2_exchange_synchronous(1, 1 << 15 | addr << 11);
+	return spi2_exchange_sync(1, 1 << 15 | addr << 11);
 }
 
 static void write(uint8_t addr, uint16_t data) {
 	addr &= 0b1111;
 	data &= 0b0000011111111111;
-	spi2_exchange_synchronous(1, 0 << 15 | addr << 11 | data);
+	spi2_exchange_sync(1, 0 << 15 | addr << 11 | data);
 }
 
 void drv8353rs_init(void) {
@@ -124,4 +127,8 @@ void drv8353rs_manually_calibrate(void) {
 bool drv8353rs_has_fault(void) {
 	uint16_t fault_1 = read(ADDR_FAULT_STATUS_1);
 	return fault_1 & (1 << 10);
+}
+
+uint16_t drv8353rs_read_register(void) {
+  return read(ADDR_DRIVER_CONFIGURATION);
 }

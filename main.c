@@ -14,15 +14,14 @@
     limitations under the License.
 */
 
-#include "ch.h"
-#include "hal.h"
-
-#include "chprintf.h"
+#include <ch.h>
+#include <hal.h>
+#include <chprintf.h>
 
 //#include "adc.h"
+#include "drv8353rs.h"
 #include "led.h"
 //#include "motor.h"
-//#include "spi.h"
 #include "serial.h"
 
 static THD_WORKING_AREA(waThreadLedBlinker, 128);
@@ -61,6 +60,8 @@ static void init(void) {
   chSysInit();
 
   serial1_init();
+  serial1_send_async("Initialized serial");
+//  drv8353rs_init();
 }
 
 static void create_threads(void) {
@@ -88,6 +89,7 @@ int main(void) {
     chThdSleepMilliseconds(1000);
     led_5_turn_off();
     chThdSleepMilliseconds(1000);
+    serial1_send_async("0x%x", 0x42);
   }
 
 //  motor_disable();

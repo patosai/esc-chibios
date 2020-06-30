@@ -1,5 +1,5 @@
-#include "ch.h"
-#include "hal.h"
+#include <ch.h>
+#include <hal.h>
 
 #include "spi.h"
 
@@ -23,7 +23,7 @@ void spi2_init(uint16_t cr1, uint16_t cr2) {
 	spiStart(&SPID2, &config);
 }
 
-uint16_t spi2_exchange_synchronous(uint16_t n, uint16_t tx) {
+uint16_t spi2_exchange_sync(uint16_t n, uint16_t tx) {
 	spiSelect(&SPID2);
 	uint16_t txbuf[1] = {tx};
 	// the rec length should be equal to the transmit length, so no buffer overflow should happen in rxbuf

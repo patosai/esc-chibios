@@ -1,7 +1,7 @@
-#include "motor.h"
+#include <ch.h>
+#include <hal.h>
 
-#include "ch.h"
-#include "hal.h"
+#include "motor.h"
 
 static void motor_pwm_init(void) {
 	// due to v1 anomalies, high pins should be set to Hi-Z
