@@ -18,10 +18,8 @@
 #include <hal.h>
 #include <chprintf.h>
 
-//#include "adc.h"
 #include "drv8353rs.h"
 #include "led.h"
-//#include "motor.h"
 #include "serial.h"
 
 static THD_WORKING_AREA(waThreadLedBlinker, 128);
@@ -36,17 +34,6 @@ static THD_FUNCTION(ThreadLedBlinker, arg) {
     chThdSleepMilliseconds(500);
   }
 }
-//
-//static THD_WORKING_AREA(waThreadSerialReporting, 128);
-//static THD_FUNCTION(ThreadSerialReporting, arg) {
-//  (void)arg;
-//  chRegSetThreadName("serial_reporting");
-//  while (true) {
-//    serial2_send("VREF: %.3f\r\n", adc_vref());
-//    serial2_send("phase a voltage: %.3f\r\n", adc_phase_a_voltage());
-//    chThdSleepMilliseconds(1000);
-//  }
-//}
 
 static void init(void) {
   /*
@@ -60,27 +47,20 @@ static void init(void) {
   chSysInit();
 
   serial1_init();
-  serial1_send_async("Initialized serial");
-//  drv8353rs_init();
+  serial1_send("Initialized serial");
+
+  drv8353rs_init();
+  serial1_send("Initialized DRV8353RS");
 }
 
 static void create_threads(void) {
   chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), NORMALPRIO, ThreadLedBlinker, NULL);
-//  chThdCreateStatic(waThreadSerialReporting, sizeof(waThreadSerialReporting), NORMALPRIO, ThreadSerialReporting, NULL);
 }
 
-/*
- * Application entry point.
- */
 int main(void) {
   init();
 
   create_threads();
-//
-//  adc_start_current_measurement_conversion();
-//
-//  motor_enable();
-//  motor_set_power_percentage(3000);
 
   led_4_turn_on();
 
@@ -91,7 +71,4 @@ int main(void) {
     chThdSleepMilliseconds(1000);
     serial1_send_async("0x%x", 0x42);
   }
-
-//  motor_disable();
-//  adc_stop_current_measurement_conversion();
 }

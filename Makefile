@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -DCHPRINTF_USE_FLOAT=TRUE -ggdb -fomit-frame-pointer -falign-functions=16 -Wall -Werror
+  USE_OPT = -DCHPRINTF_USE_FLOAT=TRUE -O0 -ggdb -fomit-frame-pointer -falign-functions=16 -Wall -Werror
 endif
 
 # C specific options here (added to USE_OPT).
@@ -30,7 +30,7 @@ endif
 
 # Enable this if you want link time optimizations (LTO).
 ifeq ($(USE_LTO),)
-  USE_LTO = yes
+  USE_LTO = no
 endif
 
 # Enable this if you want to see the full log while compiling.
@@ -119,8 +119,7 @@ LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 # setting.
 CSRC = $(ALLCSRC) \
        $(wildcard src/*.c) \
-       $(TESTSRC) \
-       main.c
+       $(TESTSRC)
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -186,11 +185,11 @@ include $(RULESPATH)/rules.mk
 flash: all
 	st-flash --format ihex write build/$(PROJECT).hex
 
-debug:
+gdb-server:
 	st-util
 
-gdb:
-	gdb build/$(PROJECT).elf
+gdb: all
+	gdb-multiarch -ex "file build/$(PROJECT).elf" -ex "target extended-remote :4242"
 
 #
 # Custom rules
