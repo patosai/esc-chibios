@@ -2,3 +2,4 @@
 	path = ChibiOS
 	url = git@github.com:ChibiOS/ChibiOS.git
 	branch = stable_19.1.x
+  ignore = dirty

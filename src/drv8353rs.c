@@ -13,38 +13,51 @@ static const uint8_t ADDR_DRIVER_CONFIGURATION = 0x07;
 static const uint16_t bottom_11_bit_mask = (((uint16_t)1 << 11) - 1); // generates 0000011111111111
 static const uint8_t bottom_4_bit_mask = (((uint8_t)1 << 4) - 1); // generates 00001111
 
-static uint16_t read(uint8_t addr) {
+static uint16_t read_spi2(uint8_t addr) {
   // https://www.ti.com/lit/ds/symlink/drv8350.pdf
   // 8.5.1.1.1 SPI Format
   // bit 15 is R/W, bit 11-14 is address, bit 0-10 is data
   addr &= bottom_4_bit_mask;
-  uint16_t transmit = (1<<15) | (addr<<11);
-  return spi2_exchange_uint16(transmit) & bottom_11_bit_mask;
+  return spi2_exchange_word((1<<15) | (addr<<11));
 }
 
-static void write(uint8_t addr, uint16_t data) {
+static void write_spi2(uint8_t addr, uint16_t data) {
   addr &= bottom_4_bit_mask;
   data &= bottom_11_bit_mask;
-  uint16_t transmit = (0 << 15) | (addr << 11) | data;
-  spi2_exchange_uint16(transmit);
+  spi2_exchange_word((0 << 15) | (addr << 11) | data);
 }
 
 void drv8353rs_init(void) {
-  spi2_init();
+  // https://www.st.com/content/ccc/resource/technical/document/reference_manual/3d/6d/5a/66/b4/99/40/d4/DM00031020.pdf/files/DM00031020.pdf/jcr:content/translations/en.DM00031020.pdf
+  // section 28.5 SPI and I2S registers
 
+  // DRV8353RS
   // http://www.ti.com/lit/ds/symlink/drv8353.pdf
-  // section 8.6.2 Control Registers
+  // section 8.5.1.1
+  // The SCLK pin should be low when the nSCS pin transitions from high to low and from low to high.
+  //   ->> CPOL = 1
+  // Data is captured on the falling edge of SCLK and data is propagated on the rising edge of SCLK.
+  //  -> data is propagated on the rising edge, so capture should happen on the falling edge
+  //  -> since CPOL is 0, the falling edge is the second clock
+  //  ->> CPHA = 1
+  uint16_t cr1 =
+      SPI_CR1_CPHA // first data capture on second edge
+      | SPI_CR1_DFF // 16-bit frame
+      ;
+  uint16_t cr2 = 0; // no DMA, interrupts
+  spi2_init(cr1, cr2);
+
   uint16_t tx_driver_control = 0 << 10 // associated half bridge shutdown in response to overcurrent
       | 0 << 9 // undervoltage lockout fault enabled
       | 1 << 7 // thermal warning reported on nFAULT and FAULT bit
-      | 1 << 5 // 3x PWM mode - low input should be tied high, high input controls gate
+      | 1 << 5 // 3x PWM mode  low input should be tied high, high input controls gate
       | 0 << 4 // 1x PWM mode uses synchronous rectification, doesn't apply since not using 1x PWM mode
       | 0 << 3 // in 1x PWM, this bit is ORed with INHC (DIR) input, doesn't apply since not using 1x PWM mode
       | 0 << 2 // don't coast the motor
       | 0 << 1 // don't brake the motor
       | 0 << 0 // don't clear latched fault bits
       ;
-  write(ADDR_DRIVER_CONTROL, tx_driver_control);
+  write_spi2(ADDR_DRIVER_CONTROL, tx_driver_control);
 
 /*
   // IRFS7530 has a gate-to-drain capacitance of 73nC
@@ -59,14 +72,14 @@ void drv8353rs_init(void) {
       | 0b1011 << 4 // high side rise drive current = 700mA
       | 0b0101 << 0 // high side fall drive current = 700mA
       ;
-  write(ADDR_GATE_DRIVE_HIGH_CONTROL, tx_gate_drive_high);
+  write_spi2(ADDR_GATE_DRIVE_HIGH_CONTROL, tx_gate_drive_high);
 
   uint16_t tx_gate_drive_low = 0 << 10 // when overcurrent is set to automatic retrying fault, fault is cleared after tRETRY
       | 0b01 << 8 // 1000-ns peak gate current drive time
       | 0b1011 << 4 // low side rise drive current = 700mA
       | 0b0101 << 0 // low side fall drive current = 700mA
       ;
-  write(ADDR_GATE_DRIVE_LOW_CONTROL, tx_gate_drive_low);
+  write_spi2(ADDR_GATE_DRIVE_LOW_CONTROL, tx_gate_drive_low);
 
   // this senses the voltage difference across the MOSFET drain and source
   // IRFS7530 rDS_ON(max) = 1.4mOhm
@@ -78,7 +91,7 @@ void drv8353rs_init(void) {
       | 0b10 << 4 // overcurrent deglitch time (minimum time of overcurrent before detection) = 4us
       | 0b0101 << 0 // VDS overcurrent voltage = 0.2V
       ;
-  write(ADDR_OVERCURRENT_CONTROL, tx_overcurrent_control);
+  write_spi2(ADDR_OVERCURRENT_CONTROL, tx_overcurrent_control);
 
   uint16_t tx_current_sense_control = 0 << 10 // sense amplifier positive is SPx
       | 0 << 9 // sense amplifier reference voltage is VREF
@@ -90,30 +103,30 @@ void drv8353rs_init(void) {
       | 0 << 2 // normal sense amplifier C operation
       | 0b11 << 0 // sense overcurrent voltage = 1V
       ;
-  write(ADDR_CURRENT_SENSE_CONTROL, tx_current_sense_control);
+  write_spi2(ADDR_CURRENT_SENSE_CONTROL, tx_current_sense_control);
 
   uint16_t tx_driver_configuration = 1 << 0 // amplifier calibration uses internal auto calibration
       ;
-  write(ADDR_DRIVER_CONFIGURATION, tx_driver_configuration);
+  write_spi2(ADDR_DRIVER_CONFIGURATION, tx_driver_configuration);
   */
 }
 
 void drv8353rs_manually_calibrate(void) {
-  uint16_t current_sense = read(ADDR_CURRENT_SENSE_CONTROL);
+  uint16_t current_sense = read_spi2(ADDR_CURRENT_SENSE_CONTROL);
   current_sense |= 0b111 << 2; // turn on calibration for all 3 amplifiers
-  write(ADDR_CURRENT_SENSE_CONTROL, current_sense);
+  write_spi2(ADDR_CURRENT_SENSE_CONTROL, current_sense);
 
   chThdSleepMilliseconds(1000); // wait 1 second to calibrate
 
   current_sense &= ~(0b111 << 2); // return to normal operation
-  write(ADDR_CURRENT_SENSE_CONTROL, current_sense);
+  write_spi2(ADDR_CURRENT_SENSE_CONTROL, current_sense);
 }
 
 bool drv8353rs_has_fault(void) {
-  uint16_t fault_1 = read(ADDR_FAULT_STATUS_1);
+  uint16_t fault_1 = read_spi2(ADDR_FAULT_STATUS_1);
   return fault_1 & (1 << 10);
 }
 
 uint16_t drv8353rs_read_register(void) {
-  return read(ADDR_DRIVER_CONFIGURATION);
+  return read_spi2(ADDR_DRIVER_CONFIGURATION);
 }

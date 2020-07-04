@@ -50,7 +50,6 @@ static void init(void) {
   serial1_send("Initialized serial");
 
   drv8353rs_init();
-  serial1_send("Initialized DRV8353RS");
 }
 
 static void create_threads(void) {
