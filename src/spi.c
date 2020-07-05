@@ -7,15 +7,14 @@ static uint16_t SPI2_TRANSMIT_BUFFER[1];
 static uint16_t SPI2_RECEIVE_BUFFER[1];
 
 void spi2_init(uint16_t cr1, uint16_t cr2) {
-  SPIConfig config = {
-      .circular = false, // no circular buffer
-      .end_cb = NULL, // no callback
-      .ssport = GPIOB, // chip select port
-      .sspad = 12, // chip select pad
-      .cr1 = cr1,
-      .cr2 = cr2
-  };
-  spiStart(&SPID2, &config);
+  SPIConfig *config = chHeapAlloc(NULL, sizeof(SPIConfig));
+  config->circular = false; // no circular buffer
+  config->end_cb = NULL; // no callback
+  config->ssport = GPIOB; // chip select port
+  config->sspad = 12; // chip select pad
+  config->cr1 = cr1;
+  config->cr2 = cr2;
+  spiStart(&SPID2, config);
 
   palSetPadMode(GPIOB, 12, PAL_MODE_ALTERNATE(5));
   palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5));

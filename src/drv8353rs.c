@@ -44,26 +44,9 @@ void drv8353rs_init(void) {
       SPI_CR1_CPHA // first data capture on second edge
       | SPI_CR1_DFF // 16-bit frame
       ;
-  uint16_t cr2 = 0; // no DMA, interrupts
+  uint16_t cr2 = 0;
 
-  // TODO for some reason, calling spi2_init causes a kernel panic,
-  // but copy pasting its contents here will work
-  // spi2_init(cr1, cr2);
-  SPIConfig config = {
-      .circular = false, // no circular buffer
-      .end_cb = NULL, // no callback
-      .ssport = GPIOB, // chip select port
-      .sspad = 12, // chip select pad
-      .cr1 = cr1,
-      .cr2 = cr2
-  };
-  spiStart(&SPID2, &config);
-  // END TODO
-
-  palSetPadMode(GPIOB, 12, PAL_MODE_ALTERNATE(5));
-  palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5));
-  palSetPadMode(GPIOB, 14, PAL_MODE_ALTERNATE(5) | PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5));
+  spi2_init(cr1, cr2);
 
   uint16_t tx_driver_control = 0 << 10 // associated half bridge shutdown in response to overcurrent
       | 0 << 9 // undervoltage lockout fault enabled
