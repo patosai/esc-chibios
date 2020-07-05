@@ -11,6 +11,7 @@ V1 anomalies
     - only the high pins for the DRV8353RS need to be rewired, since it should be programmed via SPI to operate in 3x PWM mode, which means the low pins are always 1, and the high pins control the half bridge output
     - PA9 <-> PC5, PA10 <-> PA5, PA11 <-> PA7 so channel 1 = phase A, channel 2 = phase B, channel 3 = phase C
 - DRV8353RS SDO and SDI are backwards (SDO should be connected to SDI on MCU, and vice versa)
+- STM32F4/DRV8353RS SPI NSS pin should have an external pullup (test this), which may allow for use of alternate fn on B12 instead of manual NSS clearing/setting
 - JTAG NRST is only connected to the NJTRST pin on the STM32F4, and not NRESET
 
 Debugging
