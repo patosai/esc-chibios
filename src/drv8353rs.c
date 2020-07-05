@@ -4,9 +4,9 @@
 static const uint8_t ADDR_FAULT_STATUS_1 = 0x00;
 //static const uint8_t ADDR_FAULT_STATUS_2 = 0x01;
 static const uint8_t ADDR_DRIVER_CONTROL = 0x02;
-//static const uint8_t ADDR_GATE_DRIVE_HIGH_CONTROL = 0x03;
-//static const uint8_t ADDR_GATE_DRIVE_LOW_CONTROL = 0x04;
-//static const uint8_t ADDR_OVERCURRENT_CONTROL = 0x05;
+static const uint8_t ADDR_GATE_DRIVE_HIGH_CONTROL = 0x03;
+static const uint8_t ADDR_GATE_DRIVE_LOW_CONTROL = 0x04;
+static const uint8_t ADDR_OVERCURRENT_CONTROL = 0x05;
 static const uint8_t ADDR_CURRENT_SENSE_CONTROL = 0x06;
 static const uint8_t ADDR_DRIVER_CONFIGURATION = 0x07;
 
@@ -45,7 +45,25 @@ void drv8353rs_init(void) {
       | SPI_CR1_DFF // 16-bit frame
       ;
   uint16_t cr2 = 0; // no DMA, interrupts
-  spi2_init(cr1, cr2);
+
+  // TODO for some reason, calling spi2_init causes a kernel panic,
+  // but copy pasting its contents here will work
+  // spi2_init(cr1, cr2);
+  SPIConfig config = {
+      .circular = false, // no circular buffer
+      .end_cb = NULL, // no callback
+      .ssport = GPIOB, // chip select port
+      .sspad = 12, // chip select pad
+      .cr1 = cr1,
+      .cr2 = cr2
+  };
+  spiStart(&SPID2, &config);
+  // END TODO
+
+  palSetPadMode(GPIOB, 12, PAL_MODE_ALTERNATE(5));
+  palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5));
+  palSetPadMode(GPIOB, 14, PAL_MODE_ALTERNATE(5) | PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5));
 
   uint16_t tx_driver_control = 0 << 10 // associated half bridge shutdown in response to overcurrent
       | 0 << 9 // undervoltage lockout fault enabled
@@ -59,7 +77,6 @@ void drv8353rs_init(void) {
       ;
   write_spi2(ADDR_DRIVER_CONTROL, tx_driver_control);
 
-/*
   // IRFS7530 has a gate-to-drain capacitance of 73nC
   // let's say a dog can hear a max frequency of 70kHz
   // PWM will run above 70kHz so the dog doesn't hear it as much
@@ -108,7 +125,6 @@ void drv8353rs_init(void) {
   uint16_t tx_driver_configuration = 1 << 0 // amplifier calibration uses internal auto calibration
       ;
   write_spi2(ADDR_DRIVER_CONFIGURATION, tx_driver_configuration);
-  */
 }
 
 void drv8353rs_manually_calibrate(void) {
