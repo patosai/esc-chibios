@@ -4,9 +4,9 @@
 static const uint8_t ADDR_FAULT_STATUS_1 = 0x00;
 //static const uint8_t ADDR_FAULT_STATUS_2 = 0x01;
 static const uint8_t ADDR_DRIVER_CONTROL = 0x02;
-//static const uint8_t ADDR_GATE_DRIVE_HIGH_CONTROL = 0x03;
-//static const uint8_t ADDR_GATE_DRIVE_LOW_CONTROL = 0x04;
-//static const uint8_t ADDR_OVERCURRENT_CONTROL = 0x05;
+static const uint8_t ADDR_GATE_DRIVE_HIGH_CONTROL = 0x03;
+static const uint8_t ADDR_GATE_DRIVE_LOW_CONTROL = 0x04;
+static const uint8_t ADDR_OVERCURRENT_CONTROL = 0x05;
 static const uint8_t ADDR_CURRENT_SENSE_CONTROL = 0x06;
 static const uint8_t ADDR_DRIVER_CONFIGURATION = 0x07;
 
@@ -62,7 +62,6 @@ void drv8353rs_init(void) {
       ;
   write_spi2(ADDR_DRIVER_CONTROL, tx_driver_control);
 
-/*
   // IRFS7530 has a gate-to-drain capacitance of 73nC
   // let's say a dog can hear a max frequency of 70kHz
   // PWM will run above 70kHz so the dog doesn't hear it as much
@@ -111,7 +110,6 @@ void drv8353rs_init(void) {
   uint16_t tx_driver_configuration = 1 << 0 // amplifier calibration uses internal auto calibration
       ;
   write_spi2(ADDR_DRIVER_CONFIGURATION, tx_driver_configuration);
-  */
 }
 
 void drv8353rs_manually_calibrate(void) {

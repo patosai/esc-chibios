@@ -3,11 +3,16 @@
 
 #include "spi.h"
 
+static SPIConfig *config;
+
 static uint16_t SPI2_TRANSMIT_BUFFER[1];
 static uint16_t SPI2_RECEIVE_BUFFER[1];
 
 void spi2_init(uint16_t cr1, uint16_t cr2) {
-  SPIConfig *config = chHeapAlloc(NULL, sizeof(SPIConfig));
+  if (!config) {
+    config = chHeapAlloc(NULL, sizeof(SPIConfig));
+  }
+
   config->circular = false; // no circular buffer
   config->end_cb = NULL; // no callback
   config->ssport = GPIOB; // chip select port
