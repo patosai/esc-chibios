@@ -63,11 +63,26 @@ int main(void) {
 
   led_4_turn_on();
 
+//  serial1_send_async("reg 0x%x: 0x%x", 0x00, drv8353rs_read_register(0x00));
+//  serial1_send_async("reg 0x%x: 0x%x", 0x01, drv8353rs_read_register(0x01));
+//  serial1_send_async("reg 0x%x: 0x%x", 0x02, drv8353rs_read_register(0x02));
+//  serial1_send_async("reg 0x%x: 0x%x", 0x03, drv8353rs_read_register(0x03));
+//  serial1_send_async("reg 0x%x: 0x%x", 0x04, drv8353rs_read_register(0x04));
+//  serial1_send_async("reg 0x%x: 0x%x", 0x05, drv8353rs_read_register(0x05));
+//  serial1_send_async("reg 0x%x: 0x%x", 0x06, drv8353rs_read_register(0x06));
+//  serial1_send_async("reg 0x%x: 0x%x", 0x07, drv8353rs_read_register(0x07));
+//  serial1_send_async("test 0x%x 0x%x", 0x13, 0x42);
+
   while (true) {
     led_5_turn_on();
     chThdSleepMilliseconds(1000);
     led_5_turn_off();
     chThdSleepMilliseconds(1000);
-    serial1_send_async("0x%x", 0x42);
+
+    if (drv8353rs_has_fault()) {
+      led_3_turn_on();
+    } else {
+      led_3_turn_off();
+    }
   }
 }

@@ -12,7 +12,9 @@ V1 anomalies
     - PA9 <-> PC5, PA10 <-> PA5, PA11 <-> PA7 so channel 1 = phase A, channel 2 = phase B, channel 3 = phase C
 - DRV8353RS SDO and SDI are backwards (SDO should be connected to SDI on MCU, and vice versa)
 - STM32F4/DRV8353RS SPI NSS and MISO pins should have an external pullup (test this), which may allow for use of alternate fn on B12 instead of manual NSS clearing/setting
+- Add a larger cap (>10uF) to VM on DRV8353RS
 - JTAG NRST is only connected to the NJTRST pin on the STM32F4, and not NRESET
+    - might not be a problem, but maybe add a solder bridge or a header
 
 Debugging
 -----

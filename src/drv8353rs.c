@@ -1,14 +1,14 @@
 #include "drv8353rs.h"
 #include "spi.h"
 
-static const uint8_t ADDR_FAULT_STATUS_1 = 0x00;
+//static const uint8_t ADDR_FAULT_STATUS_1 = 0x00;
 //static const uint8_t ADDR_FAULT_STATUS_2 = 0x01;
 static const uint8_t ADDR_DRIVER_CONTROL = 0x02;
-static const uint8_t ADDR_GATE_DRIVE_HIGH_CONTROL = 0x03;
-static const uint8_t ADDR_GATE_DRIVE_LOW_CONTROL = 0x04;
-static const uint8_t ADDR_OVERCURRENT_CONTROL = 0x05;
+//static const uint8_t ADDR_GATE_DRIVE_HIGH_CONTROL = 0x03;
+//static const uint8_t ADDR_GATE_DRIVE_LOW_CONTROL = 0x04;
+//static const uint8_t ADDR_OVERCURRENT_CONTROL = 0x05;
 static const uint8_t ADDR_CURRENT_SENSE_CONTROL = 0x06;
-static const uint8_t ADDR_DRIVER_CONFIGURATION = 0x07;
+//static const uint8_t ADDR_DRIVER_CONFIGURATION = 0x07;
 
 static const uint16_t bottom_11_bit_mask = (((uint16_t)1 << 11) - 1); // generates 0000011111111111
 static const uint8_t bottom_4_bit_mask = (((uint8_t)1 << 4) - 1); // generates 00001111
@@ -18,7 +18,7 @@ static uint16_t read_spi2(uint8_t addr) {
   // 8.5.1.1.1 SPI Format
   // bit 15 is R/W, bit 11-14 is address, bit 0-10 is data
   addr &= bottom_4_bit_mask;
-  return spi2_exchange_word((1<<15) | (addr<<11));
+  return spi2_exchange_word((1<<15) | (addr<<11)) & bottom_11_bit_mask;
 }
 
 static void write_spi2(uint8_t addr, uint16_t data) {
@@ -27,7 +27,19 @@ static void write_spi2(uint8_t addr, uint16_t data) {
   spi2_exchange_word((0 << 15) | (addr << 11) | data);
 }
 
+static void enable_drv8353rs(void) {
+  palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPad(GPIOB, 11);
+}
+
+static void setup_nfault_pin(void) {
+  palSetPadMode(GPIOB, 10, PAL_MODE_INPUT_PULLUP);
+}
+
 void drv8353rs_init(void) {
+  setup_nfault_pin();
+  enable_drv8353rs();
+
   // https://www.st.com/content/ccc/resource/technical/document/reference_manual/3d/6d/5a/66/b4/99/40/d4/DM00031020.pdf/files/DM00031020.pdf/jcr:content/translations/en.DM00031020.pdf
   // section 28.5 SPI and I2S registers
 
@@ -62,6 +74,7 @@ void drv8353rs_init(void) {
       ;
   write_spi2(ADDR_DRIVER_CONTROL, tx_driver_control);
 
+/*
   // IRFS7530 has a gate-to-drain capacitance of 73nC
   // let's say a dog can hear a max frequency of 70kHz
   // PWM will run above 70kHz so the dog doesn't hear it as much
@@ -110,6 +123,7 @@ void drv8353rs_init(void) {
   uint16_t tx_driver_configuration = 1 << 0 // amplifier calibration uses internal auto calibration
       ;
   write_spi2(ADDR_DRIVER_CONFIGURATION, tx_driver_configuration);
+*/
 }
 
 void drv8353rs_manually_calibrate(void) {
@@ -124,10 +138,9 @@ void drv8353rs_manually_calibrate(void) {
 }
 
 bool drv8353rs_has_fault(void) {
-  uint16_t fault_1 = read_spi2(ADDR_FAULT_STATUS_1);
-  return fault_1 & (1 << 10);
+  return palReadPad(GPIOB, 10) == PAL_LOW;
 }
 
-uint16_t drv8353rs_read_register(void) {
-  return read_spi2(ADDR_DRIVER_CONFIGURATION);
+uint16_t drv8353rs_read_register(uint8_t reg) {
+  return read_spi2(reg);
 }
