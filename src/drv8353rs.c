@@ -20,6 +20,9 @@ static void write_spi2(drv8353rs_register_t addr, uint16_t data) {
 
 static void enable_drv8353rs(void) {
   palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);
+  palClearPad(GPIOB, 11);
+  const uint8_t max_necessary_reset_pulse_time_us = 40;
+  chThdSleepMicroseconds(max_necessary_reset_pulse_time_us);
   palSetPad(GPIOB, 11);
 }
 

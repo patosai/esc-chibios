@@ -60,6 +60,10 @@ int main(void) {
   init();
   create_threads();
 
+  led_3_turn_on();
+  chThdSleepMilliseconds(1000);
+  led_3_turn_off();
+
   while (true) {
     if (drv8353rs_has_fault()) {
       led_3_turn_on();
