@@ -100,7 +100,7 @@ void drv8353rs_init(void) {
   write_spi2(GATE_DRIVE_HIGH_CONTROL, tx_gate_drive_high);
 
   uint16_t tx_gate_drive_low = 0 << 10 // when overcurrent is set to automatic retrying fault, fault is cleared after tRETRY
-      | 0b01 << 8 // 1000-ns peak gate current drive time
+      | 0b10 << 8 // gate current drive time should be ~714ns, allow check to be 2000ns
       | 0b0011 << 4 // low side rise drive current = 150mA
       | 0b0011 << 0 // low side fall drive current = 300mA
       ;
