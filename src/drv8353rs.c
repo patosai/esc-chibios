@@ -133,6 +133,9 @@ void drv8353rs_init(void) {
   uint16_t tx_driver_configuration = 1 << 0 // amplifier calibration uses internal auto calibration
       ;
   write_spi2(DRIVER_CONFIGURATION, tx_driver_configuration);
+
+  uint16_t tx_lock_command = 0b110 << 8;
+  write_spi2(GATE_DRIVE_HIGH_CONTROL, tx_lock_command);
 }
 
 void drv8353rs_manually_calibrate(void) {
