@@ -38,11 +38,11 @@ static void setup_pwm_pins(void) {
   palSetPadMode(GPIOC, 4, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOC, 5, PAL_MODE_OUTPUT_PUSHPULL);
 
-  palClearPad(GPIOA, 4);
+  palSetPad(GPIOA, 4);
   palClearPad(GPIOA, 5);
-  palClearPad(GPIOA, 6);
+  palSetPad(GPIOA, 6);
   palClearPad(GPIOA, 7);
-  palClearPad(GPIOC, 4);
+  palSetPad(GPIOC, 4);
   palClearPad(GPIOC, 5);
 }
 
@@ -73,7 +73,6 @@ void drv8353rs_init(void) {
 
   spi2_init(cr1, cr2);
 
-/*
   uint16_t tx_driver_control = 0 << 10 // associated half bridge shutdown in response to overcurrent
       | 0 << 9 // undervoltage lockout fault enabled
       | 1 << 7 // thermal warning reported on nFAULT and FAULT bit
@@ -90,20 +89,20 @@ void drv8353rs_init(void) {
   // let's say a dog can hear a max frequency of 70kHz
   // PWM will run above 70kHz so the dog doesn't hear it as much
   // 1 period = 14.28us
-  // 1% of time rising/falling = 142ns
+  // 5% of time rising/falling = 714ns
   // I = Q/t
-  // minimum drive current = 73nC/142ns = 514mA
-  // make it 700mA to be safe.
+  // minimum drive current = 73nC/714ns = 102mA
+  // make it 150mA to be safe.
   uint16_t tx_gate_drive_high = 0b000 << 8 // don't lock settings just yet
-      | 0b1011 << 4 // high side rise drive current = 700mA
-      | 0b0101 << 0 // high side fall drive current = 700mA
+      | 0b0011 << 4 // high side rise drive current = 150mA
+      | 0b0011 << 0 // high side fall drive current = 300mA
       ;
   write_spi2(GATE_DRIVE_HIGH_CONTROL, tx_gate_drive_high);
 
   uint16_t tx_gate_drive_low = 0 << 10 // when overcurrent is set to automatic retrying fault, fault is cleared after tRETRY
       | 0b01 << 8 // 1000-ns peak gate current drive time
-      | 0b1011 << 4 // low side rise drive current = 700mA
-      | 0b0101 << 0 // low side fall drive current = 700mA
+      | 0b0011 << 4 // low side rise drive current = 150mA
+      | 0b0011 << 0 // low side fall drive current = 300mA
       ;
   write_spi2(GATE_DRIVE_LOW_CONTROL, tx_gate_drive_low);
 
@@ -134,7 +133,6 @@ void drv8353rs_init(void) {
   uint16_t tx_driver_configuration = 1 << 0 // amplifier calibration uses internal auto calibration
       ;
   write_spi2(DRIVER_CONFIGURATION, tx_driver_configuration);
-*/
 }
 
 void drv8353rs_manually_calibrate(void) {
