@@ -30,24 +30,21 @@ static void setup_nfault_pin(void) {
   palSetPadMode(GPIOB, 10, PAL_MODE_INPUT_PULLUP);
 }
 
-static void setup_pwm_pins(void) {
-  palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOA, 5, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOA, 6, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOA, 7, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOC, 4, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOC, 5, PAL_MODE_OUTPUT_PUSHPULL);
+static void lock_drv_spi(void) {
+  uint16_t command = read_spi2(GATE_DRIVE_HIGH_CONTROL);
+  command &= ~(0b111 << 8);
+  command |= 0b110 << 8;
+  write_spi2(GATE_DRIVE_HIGH_CONTROL, command);
+}
 
-  palSetPad(GPIOA, 4);
-  palClearPad(GPIOA, 5);
-  palSetPad(GPIOA, 6);
-  palClearPad(GPIOA, 7);
-  palSetPad(GPIOC, 4);
-  palClearPad(GPIOC, 5);
+static void unlock_drv_spi(void) {
+  uint16_t command = read_spi2(GATE_DRIVE_HIGH_CONTROL);
+  command &= ~(0b111 << 8);
+  command |= 0b011 << 8;
+  write_spi2(GATE_DRIVE_HIGH_CONTROL, command);
 }
 
 void drv8353rs_init(void) {
-  setup_pwm_pins();
   setup_nfault_pin();
   enable_drv8353rs();
 
@@ -89,7 +86,7 @@ void drv8353rs_init(void) {
   // let's say a dog can hear a max frequency of 70kHz
   // PWM will run above 70kHz so the dog doesn't hear it as much
   // 1 period = 14.28us
-  // 5% of time rising/falling = 714ns
+  // 5% of time rising + 5% of time falling = 714ns
   // I = Q/t
   // minimum drive current = 73nC/714ns = 102mA
   // make it 150mA to be safe.
@@ -110,8 +107,6 @@ void drv8353rs_init(void) {
   // P = I^2*R -> I^2 = P/R = 20,000, so max I = 141.42A
   // voltage across the sense resistor is V = IR = 0.07V
   // set overcurrent voltage to 0.1V
-  // max current is about 150A
-  // VDS overcurrent voltage ~ rDS_ON(max) * max_current = 1.4mOhm * 150A = 0.21V
   uint16_t tx_overcurrent_control = 0 << 10 // overcurrent time is 8ms
       | 0b01 << 8 // dead time (time between switching of high and low MOSFET, prevents shoot-through)
       | 0b01 << 6 // overcurrent causes an automatic retrying fault
@@ -136,11 +131,12 @@ void drv8353rs_init(void) {
       ;
   write_spi2(DRIVER_CONFIGURATION, tx_driver_configuration);
 
-  uint16_t tx_lock_command = 0b110 << 8;
-  write_spi2(GATE_DRIVE_HIGH_CONTROL, tx_lock_command);
+  lock_drv_spi();
 }
 
 void drv8353rs_manually_calibrate(void) {
+  unlock_drv_spi();
+
   uint16_t current_sense = read_spi2(CURRENT_SENSE_CONTROL);
   current_sense |= 0b111 << 2; // turn on calibration for all 3 amplifiers
   write_spi2(CURRENT_SENSE_CONTROL, current_sense);
@@ -149,6 +145,8 @@ void drv8353rs_manually_calibrate(void) {
 
   current_sense &= ~(0b111 << 2); // return to normal operation
   write_spi2(CURRENT_SENSE_CONTROL, current_sense);
+
+  lock_drv_spi();
 }
 
 bool drv8353rs_has_fault(void) {

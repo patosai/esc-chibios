@@ -18,7 +18,9 @@
 #include <hal.h>
 #include <chprintf.h>
 
+#include "adc.h"
 #include "drv8353rs.h"
+#include "motor.h"
 #include "led.h"
 #include "serial.h"
 
@@ -49,7 +51,7 @@ static void init(void) {
   serial1_init();
   serial1_send("Initialized serial");
 
-  drv8353rs_init();
+  motor_init();
 }
 
 static void create_threads(void) {
@@ -75,5 +77,8 @@ int main(void) {
     serial1_send("0x%x", drv8353rs_read_register(FAULT_STATUS_1));
     chThdSleepMilliseconds(10);
     serial1_send("0x%x", drv8353rs_read_register(FAULT_STATUS_2));
+    chThdSleepMilliseconds(10);
+    serial1_send("ADC temp %.2f deg", adc_temp());
+    serial1_send("ADC Vref %.2fV", adc_vref());
   }
 }

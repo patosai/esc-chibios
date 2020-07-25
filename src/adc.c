@@ -4,6 +4,9 @@
 
 #include "adc.h"
 
+// On the STM32F407, all ADCs are run off of APB2
+// Last time I checked mcuconf.h, APB2 runs at 42MHz
+
 // samples_saved must be 1 or an even number
 #define ADC_SAMPLES_SAVED_PER_CHANNEL 1
 #define ADC_1_CHANNELS 2
@@ -48,8 +51,7 @@ static const ADCConversionGroup adc2_config = {
   .cr1 = ADC_CR1_SCAN,
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
-         | ADC_CR2_EXTEN_0
-         | ADC_CR2_EXTSEL_2 | ADC_CR2_EXTSEL_1,
+         | ADC_CR2_EXTEN_0, // trigger from ADC1, requires ADC_CCR MULTI[4:0] to be set
   .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_56) | ADC_SMPR1_SMP_VREF(ADC_SAMPLE_56),
   .smpr2 = 0,
   .sqr1 = 0,
@@ -65,8 +67,7 @@ static const ADCConversionGroup adc3_config = {
   .cr1 = ADC_CR1_SCAN,
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
-         | ADC_CR2_EXTEN_0
-         | ADC_CR2_EXTSEL_2 | ADC_CR2_EXTSEL_1,
+         | ADC_CR2_EXTEN_0, // trigger from ADC1, requires ADC_CCR MULTI[4:0] to be set
   .smpr1 = ADC_SMPR1_SMP_AN13(ADC_SAMPLE_56),
   .smpr2 = 0,
   .sqr1 = 0,
@@ -75,7 +76,7 @@ static const ADCConversionGroup adc3_config = {
 };
 
 static const GPTConfig gpt_config = {
-  .frequency = 100000U,
+  .frequency = 10000U,
   .callback = NULL,
   // https://www.st.com/content/ccc/resource/technical/document/application_note/group0/91/01/84/3f/7c/67/41/3f/DM00236305/files/DM00236305.pdf/jcr:content/translations/en.DM00236305.pdf
   // see end of section 2.5
@@ -98,6 +99,8 @@ static void start_all_adcs(void) {
   adcStartConversion(&ADCD1, &adc1_config, adc1_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
   adcStartConversion(&ADCD2, &adc2_config, adc2_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
   adcStartConversion(&ADCD3, &adc3_config, adc3_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
+  // 10110 is triple mode, regular simultaneous mode conversion
+  ADC->CCR = (ADC->CCR & ~0b11111) | 0b10110;
 }
 
 static void stop_all_adcs(void) {
@@ -139,14 +142,15 @@ float adc_vref(void) {
   return adc2_samples[1] * ADC_VOLTAGE_FACTOR;
 }
 
-float adc_phase_a_current(void) {
-  return adc1_samples[0] * SAMPLE_TO_CURRENT_CONSTANT;
-}
+void adc_retrieve_phase_currents(float* buf) {
+  // disable interrupts to prevent DMA from updating samples in the middle of retrieval
+  chSysLock();
+  buf[0] = adc1_samples[0];
+  buf[1] = adc2_samples[0];
+  buf[2] = adc3_samples[0];
+  chSysUnlock();
 
-float adc_phase_b_current(void) {
-  return adc2_samples[0] * SAMPLE_TO_CURRENT_CONSTANT;
-}
-
-float adc_phase_c_current(void) {
-  return adc3_samples[0] * SAMPLE_TO_CURRENT_CONSTANT;
+  buf[0] = buf[0] * SAMPLE_TO_CURRENT_CONSTANT;
+  buf[1] = buf[1] * SAMPLE_TO_CURRENT_CONSTANT;
+  buf[2] = buf[2] * SAMPLE_TO_CURRENT_CONSTANT;
 }
