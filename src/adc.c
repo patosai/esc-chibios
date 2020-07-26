@@ -4,37 +4,44 @@
 
 #include "adc.h"
 #include "led.h"
+#include "serial.h"
 
 // On the STM32F407, all ADCs are run off of APB2
 // Last time I checked mcuconf.h, APB2 runs at 42MHz
 
 // samples_saved must be 1 or an even number
 #define ADC_SAMPLES_SAVED_PER_CHANNEL 1
-#define ADC_1_CHANNELS 2
-#define ADC_2_CHANNELS 2
-#define ADC_3_CHANNELS 1
+#define ADC1_CHANNELS 2
+#define ADC2_CHANNELS 2
+#define ADC3_CHANNELS 1
 
 #define ADC_VOLTAGE_FACTOR (3.3 / 4095.0)
 #define PHASE_RESISTANCE_OHMS 0.005
 #define SAMPLE_TO_CURRENT_CONSTANT (ADC_VOLTAGE_FACTOR/PHASE_RESISTANCE_OHMS)
 
 // TIM2 runs on APB1 which runs at 21MHz
-#define GPT2_TIMER_FREQUENCY 1000000 // 1MHz timer, it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
+#define GPT2_TIMER_FREQUENCY 2000 // 1MHz timer, it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
 
-static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC_1_CHANNELS];
-static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC_2_CHANNELS];
-static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC_3_CHANNELS];
+static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
+static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
+static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
 
 static void adc_callback(ADCDriver *adc) {
   (void)adc;
-  led_4_turn_on();
+}
+
+static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
+  (void)adc;
+  (void)err;
+  // TODO
+  // can't call to serial from this callback..
 }
 
 static const ADCConversionGroup adc1_config = {
   .circular = FALSE,
-  .num_channels = ADC_1_CHANNELS,
-  .end_cb = adc_callback,//NULL,
-  .error_cb = NULL,
+  .num_channels = ADC1_CHANNELS,
+  .end_cb = adc_callback,
+  .error_cb = adc_common_error_callback,
   .cr1 = ADC_CR1_SCAN, // set scan mode so ADC will convert SQR1/2/3 channels
   // https://www.st.com/content/ccc/resource/technical/document/reference_manual/3d/6d/5a/66/b4/99/40/d4/DM00031020.pdf/files/DM00031020.pdf/jcr:content/translations/en.DM00031020.pdf
   // see section 13.6 Conversion on external trigger and trigger polarity
@@ -51,9 +58,9 @@ static const ADCConversionGroup adc1_config = {
 
 static const ADCConversionGroup adc2_config = {
   .circular = FALSE,
-  .num_channels = ADC_2_CHANNELS,
+  .num_channels = ADC2_CHANNELS,
   .end_cb = NULL,
-  .error_cb = NULL,
+  .error_cb = adc_common_error_callback,
   .cr1 = ADC_CR1_SCAN,
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
@@ -67,9 +74,9 @@ static const ADCConversionGroup adc2_config = {
 
 static const ADCConversionGroup adc3_config = {
   .circular = FALSE,
-  .num_channels = ADC_3_CHANNELS,
+  .num_channels = ADC3_CHANNELS,
   .end_cb = NULL,
-  .error_cb = NULL,
+  .error_cb = adc_common_error_callback,
   .cr1 = ADC_CR1_SCAN,
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
@@ -79,21 +86,6 @@ static const ADCConversionGroup adc3_config = {
   .sqr1 = 0,
   .sqr2 = 0,
   .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN13)
-};
-
-static void gpt_callback(GPTDriver *gpt) {
-  (void)gpt;
-  led_5_turn_on();
-}
-
-static const GPTConfig gpt_config = {
-  .frequency = GPT2_TIMER_FREQUENCY,
-  .callback = gpt_callback,//NULL,
-  // https://www.st.com/content/ccc/resource/technical/document/application_note/group0/91/01/84/3f/7c/67/41/3f/DM00236305/files/DM00236305.pdf/jcr:content/translations/en.DM00236305.pdf
-  // see end of section 2.5
-  // MMS[2:0] = 010 -> pulse on TRGO
-  .cr2 = TIM_CR2_MMS_1,
-  .dier = 0U
 };
 
 static void setup_pin_modes(void) {
@@ -111,6 +103,8 @@ static void start_all_adcs(void) {
   adcStartConversion(&ADCD2, &adc2_config, adc2_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
   adcStartConversion(&ADCD3, &adc3_config, adc3_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
 
+  adcSTM32EnableTSVREFE();
+
   // STM32F4 uses the ChibiOS ADCv2 driver, which does not support dual/triple mode ADCs
   // Instead, write the ADC_CCR MULTI register manually
   // 10110 is triple mode, regular simultaneous mode conversion
@@ -127,27 +121,40 @@ static void stop_all_adcs(void) {
   adcStop(&ADCD1);
 }
 
-static void enable_temp_and_vref_sensors(void) {
-  adcSTM32EnableTSVREFE();
+static void gpt_callback(GPTDriver *gpt) {
+  (void)gpt;
+  led_5_toggle();
 }
 
-static void disable_temp_and_vref_sensors(void) {
-  adcSTM32DisableTSVREFE();
+static const GPTConfig gpt2_config = {
+  .frequency = GPT2_TIMER_FREQUENCY,
+  .callback = gpt_callback,
+  // https://www.st.com/content/ccc/resource/technical/document/application_note/group0/91/01/84/3f/7c/67/41/3f/DM00236305/files/DM00236305.pdf/jcr:content/translations/en.DM00236305.pdf
+  // see end of section 2.5
+  // MMS[2:0] = 010 -> pulse on TRGO
+  .cr2 = TIM_CR2_MMS_1,
+  .dier = 0U
+};
+
+static void start_timer(void) {
+  gptStart(&GPTD2, &gpt2_config);
+  gptStartContinuous(&GPTD2, GPT2_TIMER_FREQUENCY / 1000);
+}
+
+static void stop_timer(void) {
+  gptStopTimer(&GPTD2);
+  gptStop(&GPTD2);
 }
 
 void adc_start_continuous_conversion(void) {
   setup_pin_modes();
-  gptStart(&GPTD2, &gpt_config);
-  gptStartContinuous(&GPTD2, GPT2_TIMER_FREQUENCY / 1000); // fire timer at 1kHz
   start_all_adcs();
-  enable_temp_and_vref_sensors();
+  start_timer();
 }
 
 void adc_stop_continuous_conversion(void) {
-  disable_temp_and_vref_sensors();
+  stop_timer();
   stop_all_adcs();
-  gptStopTimer(&GPTD2);
-  gptStop(&GPTD2);
 }
 
 float adc_temp(void) {

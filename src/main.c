@@ -76,10 +76,6 @@ int main(void) {
     }
     chThdSleepMilliseconds(1000);
 
-//    serial1_send("0x%x", drv8353rs_read_register(FAULT_STATUS_1));
-//    chThdSleepMilliseconds(10);
-//    serial1_send("0x%x", drv8353rs_read_register(FAULT_STATUS_2));
-//    chThdSleepMilliseconds(10);
     serial1_send("ADC temp %.1fC deg", adc_temp());
     serial1_send("ADC Vref %.2fV", adc_vref());
   }
