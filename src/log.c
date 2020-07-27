@@ -1,17 +1,55 @@
 #include <ch.h>
 #include <hal.h>
+#include <stdarg.h>
 
 #include "log.h"
+#include "serial.h"
 #include "util.h"
 
-static char message_buffer[10][1024];
+#define LOG_MESSAGE_BUFFER_SIZE 16
+#define LOG_STRING_MAX_LENGTH 256
 
-void log_queue_message(const char* fmt, va_list ap) {
-  // TODO
-  util_format_buffer(message_buffer[0], 1024, fmt, ap);
+static objects_fifo_t message_fifo;
+static msg_t msg_buffer[LOG_MESSAGE_BUFFER_SIZE];
+static char string_buffer[LOG_MESSAGE_BUFFER_SIZE][LOG_STRING_MAX_LENGTH];
+
+void log_init(void) {
+  serial1_init();
+  chFifoObjectInit(&message_fifo, LOG_STRING_MAX_LENGTH, LOG_MESSAGE_BUFFER_SIZE, string_buffer, msg_buffer);
 }
 
-char* log_queue_get_message(void) {
-  // TODO
-  return message_buffer[0];
+void log_queue_message(const char* fmt, ...) {
+  char *msg_buf = chFifoTakeObjectTimeout(&message_fifo, TIME_INFINITE);
+  chDbgAssert(msg_buf != NULL, "can't add log queue message");
+
+  va_list ap;
+  va_start(ap, fmt);
+  util_format_str_with_newline(msg_buf, LOG_STRING_MAX_LENGTH, fmt, ap);
+  va_end(ap);
+
+  chFifoSendObject(&message_fifo, msg_buf);
+}
+
+void log_queue_message_in_interrupt(const char* fmt, ...) {
+  chSysLockFromISR();
+  char *msg_buf = chFifoTakeObjectI(&message_fifo);
+  chDbgAssert(msg_buf != NULL, "can't add log queue message");
+
+  va_list ap;
+  va_start(ap, fmt);
+  util_format_str_with_newline(msg_buf, LOG_STRING_MAX_LENGTH, fmt, ap);
+  va_end(ap);
+
+  chFifoSendObjectI(&message_fifo, msg_buf);
+  chSysUnlockFromISR();
+}
+
+void log_print_queue_into_serial(void) {
+  char *str;
+  msg_t msg = chFifoReceiveObjectTimeout(&message_fifo, (void**)&str, TIME_IMMEDIATE);
+  while (msg == MSG_OK) {
+    serial1_send_sync(str);
+    chFifoReturnObject(&message_fifo, str);
+    msg = chFifoReceiveObjectTimeout(&message_fifo, (void**)&str, TIME_IMMEDIATE);
+  }
 }

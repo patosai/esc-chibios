@@ -22,6 +22,7 @@
 #include "drv8353rs.h"
 #include "motor.h"
 #include "led.h"
+#include "log.h"
 #include "serial.h"
 
 static THD_WORKING_AREA(waThreadLedBlinker, 128);
@@ -37,6 +38,16 @@ static THD_FUNCTION(ThreadLedBlinker, arg) {
   }
 }
 
+static THD_WORKING_AREA(waThreadLogQueuePrinter, 128);
+static THD_FUNCTION(ThreadLogQueuePrinter, arg) {
+  (void)arg;
+  chRegSetThreadName("log_queue_printer");
+  while (true) {
+    log_print_queue_into_serial();
+    chThdSleepMilliseconds(10);
+  }
+}
+
 static void init(void) {
   /*
    * System initializations.
@@ -49,22 +60,20 @@ static void init(void) {
   chSysInit();
 
   serial1_init();
-  serial1_send("Initialized serial");
-
+  log_init();
   motor_init();
+
+  serial1_send("Initialized");
 }
 
 static void create_threads(void) {
-  chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), NORMALPRIO, ThreadLedBlinker, NULL);
+  chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), LOWPRIO, ThreadLedBlinker, NULL);
+  chThdCreateStatic(waThreadLogQueuePrinter, sizeof(waThreadLogQueuePrinter), LOWPRIO, ThreadLogQueuePrinter, NULL);
 }
 
 int main(void) {
   init();
   create_threads();
-
-  led_3_turn_on();
-  chThdSleepMilliseconds(1000);
-  led_3_turn_off();
 
   adc_start_continuous_conversion();
 

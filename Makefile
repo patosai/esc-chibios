@@ -185,6 +185,8 @@ include $(RULESPATH)/rules.mk
 flash: all
 	st-flash --format ihex write build/$(PROJECT).hex
 
+f: flash
+
 gdb-server:
 	st-util
 

@@ -4,6 +4,7 @@
 
 #include "adc.h"
 #include "led.h"
+#include "log.h"
 #include "serial.h"
 
 // On the STM32F407, all ADCs are run off of APB2
@@ -28,13 +29,13 @@ static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
 
 static void adc_callback(ADCDriver *adc) {
   (void)adc;
+  log_queue_message_in_interrupt("ADC iteration");
 }
 
 static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
   (void)adc;
   (void)err;
-  // TODO
-  // can't call to serial from this callback..
+  log_queue_message_in_interrupt("ADC error %d", err);
 }
 
 static const ADCConversionGroup adc1_config = {
@@ -138,7 +139,7 @@ static const GPTConfig gpt2_config = {
 
 static void start_timer(void) {
   gptStart(&GPTD2, &gpt2_config);
-  gptStartContinuous(&GPTD2, GPT2_TIMER_FREQUENCY / 1000);
+  gptStartContinuous(&GPTD2, GPT2_TIMER_FREQUENCY / 1);
 }
 
 static void stop_timer(void) {
