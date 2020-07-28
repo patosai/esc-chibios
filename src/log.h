@@ -3,10 +3,8 @@
 
 #include "serial.h"
 
-void log_init(void);
-#define log_print(...) serial1_send(__VA_ARGS__)
-void log_queue_message(const char* fmt, ...);
-void log_queue_message_in_interrupt(const char* fmt, ...);
-void log_stream_queue_to_serial(void);
+#define log_init() serial1_init()
+#define log_println(...) serial1_send(__VA_ARGS__)
+#define log_println_in_interrupt(...) serial1_send_sync_in_interrupt(__VA_ARGS__)
 
 #endif

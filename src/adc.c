@@ -43,7 +43,7 @@ static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
   } else if (adc->adc == ADC3)  {
     adc_num = 3;
   }
-  log_queue_message_in_interrupt("ADC %d error %d", adc_num, err);
+  log_println_in_interrupt("ADC %d error %d", adc_num, err);
 }
 
 static const ADCConversionGroup adc1_config = {

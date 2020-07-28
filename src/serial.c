@@ -42,3 +42,15 @@ int serial1_send_sync(const char *fmt, ...) {
 
   return formatted_bytes;
 }
+
+int serial1_send_sync_in_interrupt(const char *fmt, ...) {
+  chSysLockFromISR();
+  va_list ap;
+  va_start(ap, fmt);
+  int formatted_bytes = util_format_str_with_newline(buffer, SERIAL_TOTAL_BUFFER_SIZE, fmt, ap);
+  sdWriteI(&SD1, (uint8_t*)buffer, formatted_bytes);
+  va_end(ap);
+  chSysUnlockFromISR();
+
+  return formatted_bytes;
+}

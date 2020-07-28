@@ -23,7 +23,6 @@
 #include "motor.h"
 #include "led.h"
 #include "log.h"
-#include "serial.h"
 
 static THD_WORKING_AREA(waThreadLedBlinker, 128);
 static THD_FUNCTION(ThreadLedBlinker, arg) {
@@ -32,15 +31,6 @@ static THD_FUNCTION(ThreadLedBlinker, arg) {
   while (true) {
     led_2_toggle();
     chThdSleepMilliseconds(500);
-  }
-}
-
-static THD_WORKING_AREA(waThreadLogQueuePrinter, 128);
-static THD_FUNCTION(ThreadLogQueuePrinter, arg) {
-  (void)arg;
-  chRegSetThreadName("log_queue_printer");
-  while (true) {
-    log_stream_queue_to_serial();
   }
 }
 
@@ -58,12 +48,11 @@ static void init(void) {
   log_init();
   motor_init();
 
-  log_print("Initialized");
+  log_println("Initialized");
 }
 
 static void create_threads(void) {
   chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), LOWPRIO, ThreadLedBlinker, NULL);
-  chThdCreateStatic(waThreadLogQueuePrinter, sizeof(waThreadLogQueuePrinter), NORMALPRIO, ThreadLogQueuePrinter, NULL);
 }
 
 int main(void) {
@@ -80,8 +69,7 @@ int main(void) {
     }
     chThdSleepMilliseconds(1000);
 
-    log_print("ADC temp %.1fC deg", adc_temp());
-    log_print("ADC Vref %.2fV", adc_vref());
-    log_queue_message("hello world");
+    log_println("ADC temp %.1fC deg", adc_temp());
+    log_println("ADC Vref %.2fV", adc_vref());
   }
 }
