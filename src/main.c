@@ -40,7 +40,7 @@ static THD_FUNCTION(ThreadLogQueuePrinter, arg) {
   (void)arg;
   chRegSetThreadName("log_queue_printer");
   while (true) {
-    log_print_queue_into_serial();
+    log_stream_queue_to_serial();
   }
 }
 

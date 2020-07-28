@@ -43,7 +43,7 @@ void log_queue_message_in_interrupt(const char *fmt, ...) {
   chSysUnlockFromISR();
 }
 
-void log_print_queue_into_serial(void) {
+void log_stream_queue_to_serial(void) {
   char *str;
   msg_t msg = chFifoReceiveObjectTimeout(&message_fifo, (void**)&str, TIME_INFINITE);
   while (msg == MSG_OK) {
