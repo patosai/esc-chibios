@@ -3,7 +3,6 @@
 #include <stdarg.h>
 
 #include "log.h"
-#include "serial.h"
 #include "util.h"
 
 #define LOG_MESSAGE_BUFFER_SIZE 16
@@ -30,7 +29,7 @@ void log_queue_message(const char* fmt, ...) {
   chFifoSendObject(&message_fifo, msg_buf);
 }
 
-void log_queue_message_in_interrupt(const char* fmt, ...) {
+void log_queue_message_in_interrupt(const char *fmt, ...) {
   chSysLockFromISR();
   char *msg_buf = chFifoTakeObjectI(&message_fifo);
   chDbgAssert(msg_buf != NULL, "can't add log queue message");
@@ -46,10 +45,10 @@ void log_queue_message_in_interrupt(const char* fmt, ...) {
 
 void log_print_queue_into_serial(void) {
   char *str;
-  msg_t msg = chFifoReceiveObjectTimeout(&message_fifo, (void**)&str, TIME_IMMEDIATE);
+  msg_t msg = chFifoReceiveObjectTimeout(&message_fifo, (void**)&str, TIME_INFINITE);
   while (msg == MSG_OK) {
     serial1_send_sync(str);
     chFifoReturnObject(&message_fifo, str);
-    msg = chFifoReceiveObjectTimeout(&message_fifo, (void**)&str, TIME_IMMEDIATE);
+    msg = chFifoReceiveObjectTimeout(&message_fifo, (void**)&str, TIME_INFINITE);
   }
 }

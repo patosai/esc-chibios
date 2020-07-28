@@ -21,7 +21,7 @@
 #define SAMPLE_TO_CURRENT_CONSTANT (ADC_VOLTAGE_FACTOR/PHASE_RESISTANCE_OHMS)
 
 // TIM2 runs on APB1 which runs at 21MHz
-#define GPT2_TIMER_FREQUENCY 2000 // 1MHz timer, it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
+#define GPT2_TIMER_FREQUENCY 21000 // 21kHz timer, it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
 
 static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
@@ -29,13 +29,21 @@ static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
 
 static void adc_callback(ADCDriver *adc) {
   (void)adc;
-  log_queue_message_in_interrupt("ADC iteration");
+  led_4_toggle();
 }
 
 static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
   (void)adc;
   (void)err;
-  log_queue_message_in_interrupt("ADC error %d", err);
+  int adc_num = 0;
+  if (adc->adc == ADC1) {
+    adc_num = 1;
+  } else if (adc->adc == ADC2) {
+    adc_num = 2;
+  } else if (adc->adc == ADC3)  {
+    adc_num = 3;
+  }
+  log_queue_message_in_interrupt("ADC %d error %d", adc_num, err);
 }
 
 static const ADCConversionGroup adc1_config = {
@@ -100,16 +108,15 @@ static void start_all_adcs(void) {
   adcStart(&ADCD2, NULL);
   adcStart(&ADCD3, NULL);
 
-  adcStartConversion(&ADCD1, &adc1_config, adc1_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
-  adcStartConversion(&ADCD2, &adc2_config, adc2_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
-  adcStartConversion(&ADCD3, &adc3_config, adc3_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
-
   adcSTM32EnableTSVREFE();
-
   // STM32F4 uses the ChibiOS ADCv2 driver, which does not support dual/triple mode ADCs
   // Instead, write the ADC_CCR MULTI register manually
   // 10110 is triple mode, regular simultaneous mode conversion
   ADC->CCR = (ADC->CCR & ~0b11111) | 0b10110;
+
+  adcStartConversion(&ADCD1, &adc1_config, adc1_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
+  adcStartConversion(&ADCD2, &adc2_config, adc2_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
+  adcStartConversion(&ADCD3, &adc3_config, adc3_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
 }
 
 static void stop_all_adcs(void) {

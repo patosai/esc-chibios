@@ -1,6 +1,5 @@
 #include <ch.h>
 #include <hal.h>
-#include <stdarg.h>
 
 #include "serial.h"
 #include "util.h"
@@ -23,23 +22,22 @@ void serial1_init(void) {
   palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7));
 }
 
-int serial1_send_sync(const char *fmt, ...) {
-  va_list ap;
-
-  va_start(ap, fmt);
-  int formatted_bytes = util_format_str_with_newline(buffer, SERIAL_TOTAL_BUFFER_SIZE, fmt, ap);
-  sdWrite(&SD1, (uint8_t*)buffer, formatted_bytes);
-  va_end(ap);
-
-  return formatted_bytes;
-}
-
 int serial1_send(const char *fmt, ...) {
   va_list ap;
 
   va_start(ap, fmt);
   int formatted_bytes = util_format_str_with_newline(buffer, SERIAL_TOTAL_BUFFER_SIZE, fmt, ap);
   sdAsynchronousWrite(&SD1, (uint8_t*)buffer, formatted_bytes);
+  va_end(ap);
+
+  return formatted_bytes;
+}
+
+int serial1_send_sync(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  int formatted_bytes = util_format_str_with_newline(buffer, SERIAL_TOTAL_BUFFER_SIZE, fmt, ap);
+  sdWrite(&SD1, (uint8_t*)buffer, formatted_bytes);
   va_end(ap);
 
   return formatted_bytes;

@@ -30,10 +30,7 @@ static THD_FUNCTION(ThreadLedBlinker, arg) {
   (void)arg;
   chRegSetThreadName("led_blinker");
   while (true) {
-    led_2_turn_on();
-    chThdSleepMilliseconds(500);
-
-    led_2_turn_off();
+    led_2_toggle();
     chThdSleepMilliseconds(500);
   }
 }
@@ -44,7 +41,6 @@ static THD_FUNCTION(ThreadLogQueuePrinter, arg) {
   chRegSetThreadName("log_queue_printer");
   while (true) {
     log_print_queue_into_serial();
-    chThdSleepMilliseconds(10);
   }
 }
 
@@ -59,16 +55,15 @@ static void init(void) {
   halInit();
   chSysInit();
 
-  serial1_init();
   log_init();
   motor_init();
 
-  serial1_send("Initialized");
+  log_print("Initialized");
 }
 
 static void create_threads(void) {
   chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), LOWPRIO, ThreadLedBlinker, NULL);
-  chThdCreateStatic(waThreadLogQueuePrinter, sizeof(waThreadLogQueuePrinter), LOWPRIO, ThreadLogQueuePrinter, NULL);
+  chThdCreateStatic(waThreadLogQueuePrinter, sizeof(waThreadLogQueuePrinter), NORMALPRIO, ThreadLogQueuePrinter, NULL);
 }
 
 int main(void) {
@@ -85,7 +80,8 @@ int main(void) {
     }
     chThdSleepMilliseconds(1000);
 
-    serial1_send("ADC temp %.1fC deg", adc_temp());
-    serial1_send("ADC Vref %.2fV", adc_vref());
+    log_print("ADC temp %.1fC deg", adc_temp());
+    log_print("ADC Vref %.2fV", adc_vref());
+    log_queue_message("hello world");
   }
 }
