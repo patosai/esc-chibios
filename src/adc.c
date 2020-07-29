@@ -47,6 +47,7 @@ static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
 }
 
 static const ADCConversionGroup adc1_config = {
+  // circular buffer needs to be enabled for ADC triggering to work
   .circular = TRUE,
   .num_channels = ADC1_CHANNELS,
   .end_cb = adc_callback,
