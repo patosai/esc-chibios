@@ -21,6 +21,7 @@
 #define SAMPLE_TO_CURRENT_CONSTANT (ADC_VOLTAGE_FACTOR/PHASE_RESISTANCE_OHMS)
 
 // TIM2 runs on APB1 which runs at 21MHz
+// this will trigger the ADC to start conversion
 #define GPT2_TIMER_FREQUENCY 21000 // 21kHz timer, it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
 
 static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
@@ -34,7 +35,6 @@ static void adc_callback(ADCDriver *adc) {
 
 static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
   (void)adc;
-  (void)err;
   int adc_num = 0;
   if (adc->adc == ADC1) {
     adc_num = 1;
@@ -59,11 +59,14 @@ static const ADCConversionGroup adc1_config = {
          | ADC_CR2_DMA // use DMA to transfer data to buffers
          | ADC_CR2_EXTEN_0 // trigger on rising edge
          | ADC_CR2_EXTSEL_2 | ADC_CR2_EXTSEL_1, // trigger on TIM2_TRGO
-  .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_480) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_480), // 42MHz, 10us minimum sampling time, 480 ticks gives 11us
+  // ADCCLK operates at APB2/2 (default) = 42MHz/2 = 21MHz
+  // Temp and Vref need a min. sampling time of 10us = 210 cycles needed
+  // smallest # cycles bigger than 210 is 480
+  .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_480) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_480),
   .smpr2 = 0,
   .sqr1 = 0,
-  .sqr2 = ADC_SQR2_SQ8_N(ADC_CHANNEL_SENSOR),
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN11)
+  .sqr2 = 0,
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN11) | ADC_SQR3_SQ2_N(ADC_CHANNEL_SENSOR)
 };
 
 static const ADCConversionGroup adc2_config = {
@@ -78,8 +81,8 @@ static const ADCConversionGroup adc2_config = {
   .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_480) | ADC_SMPR1_SMP_VREF(ADC_SAMPLE_480),
   .smpr2 = 0,
   .sqr1 = 0,
-  .sqr2 = ADC_SQR2_SQ8_N(ADC_CHANNEL_VREFINT),
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12)
+  .sqr2 = 0,
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12) | ADC_SQR3_SQ2_N(ADC_CHANNEL_VREFINT)
 };
 
 static const ADCConversionGroup adc3_config = {
@@ -110,6 +113,7 @@ static void start_all_adcs(void) {
   adcStart(&ADCD3, NULL);
 
   adcSTM32EnableTSVREFE();
+
   // STM32F4 uses the ChibiOS ADCv2 driver, which does not support dual/triple mode ADCs
   // Instead, write the ADC_CCR MULTI register manually
   // 10110 is triple mode, regular simultaneous mode conversion
@@ -169,13 +173,15 @@ void adc_stop_continuous_conversion(void) {
 float adc_temp(void) {
   // formula from reference manual section 13.10 subsection "Reading the temperature"
   // constant values from F407VG datasheet
-  const float V_25 = 0.76; // voltage at 25C
-  const float average_slope = 0.0025; // 2.5mV/C
-  return (((adc1_samples[1] * ADC_VOLTAGE_FACTOR) - V_25) / average_slope) + 25;
+//  const float V_25 = 0.76; // voltage at 25C
+//  const float average_slope = 0.0025; // 2.5mV/C
+//  return (((adc1_samples[1] * ADC_VOLTAGE_FACTOR) - V_25) / average_slope) + 25;
+  return adc1_samples[1];
 }
 
 float adc_vref(void) {
-  return adc2_samples[1] * ADC_VOLTAGE_FACTOR;
+//  return adc2_samples[1] * ADC_VOLTAGE_FACTOR;
+  return adc2_samples[1];
 }
 
 void adc_retrieve_phase_currents(float* buf) {
