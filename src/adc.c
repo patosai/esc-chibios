@@ -47,7 +47,7 @@ static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
 }
 
 static const ADCConversionGroup adc1_config = {
-  .circular = FALSE,
+  .circular = TRUE,
   .num_channels = ADC1_CHANNELS,
   .end_cb = adc_callback,
   .error_cb = adc_common_error_callback,
@@ -66,7 +66,7 @@ static const ADCConversionGroup adc1_config = {
 };
 
 static const ADCConversionGroup adc2_config = {
-  .circular = FALSE,
+  .circular = TRUE,
   .num_channels = ADC2_CHANNELS,
   .end_cb = NULL,
   .error_cb = adc_common_error_callback,
@@ -82,7 +82,7 @@ static const ADCConversionGroup adc2_config = {
 };
 
 static const ADCConversionGroup adc3_config = {
-  .circular = FALSE,
+  .circular = TRUE,
   .num_channels = ADC3_CHANNELS,
   .end_cb = NULL,
   .error_cb = adc_common_error_callback,
