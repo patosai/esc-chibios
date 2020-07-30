@@ -20,9 +20,9 @@
 #define PHASE_RESISTANCE_OHMS 0.005
 #define SAMPLE_TO_CURRENT_CONSTANT (ADC_VOLTAGE_FACTOR/PHASE_RESISTANCE_OHMS)
 
-// TIM2 runs on APB1 which runs at 21MHz
-// this will trigger the ADC to start conversion
-#define GPT2_TIMER_FREQUENCY 21000 // 21kHz timer, it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
+#define ADC_TRIGGER_FREQUENCY 3500 // trigger frequency of ADCs (Hz)
+#define GPT2_TIMER_FREQUENCY 21000 // timer frequency, must be a multiple of ADC_TRIGGER_FREQUENCY, and must evenly divide APB1 = 21MHz
+// it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
 
 static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
@@ -85,7 +85,7 @@ static const ADCConversionGroup adc2_config = {
   .cr1 = ADC_CR1_SCAN,
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
-         | ADC_CR2_EXTEN_RISING, // trigger from ADC1, requires ADC_CCR MULTI[4:0] to be set
+         | ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
   .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_144),
   .smpr2 = 0,
   .sqr1 = 0,
@@ -101,7 +101,7 @@ static const ADCConversionGroup adc3_config = {
   .cr1 = ADC_CR1_SCAN,
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
-         | ADC_CR2_EXTEN_RISING, // trigger from ADC1, requires ADC_CCR MULTI[4:0] to be set
+         | ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
   .smpr1 = ADC_SMPR1_SMP_AN13(ADC_SAMPLE_144),
   .smpr2 = 0,
   .sqr1 = 0,
@@ -159,7 +159,7 @@ static const GPTConfig gpt2_config = {
 
 static void start_timer(void) {
   gptStart(&GPTD2, &gpt2_config);
-  gptStartContinuous(&GPTD2, GPT2_TIMER_FREQUENCY / 1);
+  gptStartContinuous(&GPTD2, GPT2_TIMER_FREQUENCY / ADC_TRIGGER_FREQUENCY);
 }
 
 static void stop_timer(void) {
