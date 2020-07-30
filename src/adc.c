@@ -12,8 +12,8 @@
 
 // samples_saved must be 1 or an even number
 #define ADC_SAMPLES_SAVED_PER_CHANNEL 1
-#define ADC1_CHANNELS 2
-#define ADC2_CHANNELS 2
+#define ADC1_CHANNELS 3
+#define ADC2_CHANNELS 1
 #define ADC3_CHANNELS 1
 
 #define ADC_VOLTAGE_FACTOR (3.3 / 4095.0)
@@ -28,10 +28,18 @@ static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
 static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
 
-static void adc_callback(ADCDriver *adc) {
-  (void)adc;
-  led_4_toggle();
-}
+//static void adc_callback(ADCDriver *adc) {
+//  (void)adc;
+//  int adc_num = 0;
+//  if (adc->adc == ADC1) {
+//    adc_num = 1;
+//  } else if (adc->adc == ADC2) {
+//    adc_num = 2;
+//  } else if (adc->adc == ADC3)  {
+//    adc_num = 3;
+//  }
+//  log_println_in_interrupt("ADC %d callback", adc_num);
+//}
 
 static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
   (void)adc;
@@ -50,23 +58,23 @@ static const ADCConversionGroup adc1_config = {
   // circular buffer needs to be enabled for ADC triggering to work
   .circular = TRUE,
   .num_channels = ADC1_CHANNELS,
-  .end_cb = adc_callback,
+  .end_cb = NULL,
   .error_cb = adc_common_error_callback,
   .cr1 = ADC_CR1_SCAN, // set scan mode so ADC will convert SQR1/2/3 channels
   // https://www.st.com/content/ccc/resource/technical/document/reference_manual/3d/6d/5a/66/b4/99/40/d4/DM00031020.pdf/files/DM00031020.pdf/jcr:content/translations/en.DM00031020.pdf
   // see section 13.6 Conversion on external trigger and trigger polarity
   .cr2 = ADC_CR2_ADON // turn ADC on
          | ADC_CR2_DMA // use DMA to transfer data to buffers
-         | ADC_CR2_EXTEN_0 // trigger on rising edge
-         | ADC_CR2_EXTSEL_2 | ADC_CR2_EXTSEL_1, // trigger on TIM2_TRGO
-  // ADCCLK operates at APB2/2 (default) = 42MHz/2 = 21MHz
-  // Temp and Vref need a min. sampling time of 10us = 210 cycles needed
-  // smallest # cycles bigger than 210 is 480
-  .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_480) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_480),
+         | ADC_CR2_EXTEN_RISING // trigger on rising edge
+         | ADC_CR2_EXTSEL_SRC(6), // trigger on TIM2_TRGO
+  // ADCCLK operates at APB2/4 = 42MHz/4 = 10.5MHz
+  // Temp and Vref need a min. sampling time of 10us = 105 cycles needed
+  // smallest # cycles bigger than 105 is 144
+  .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_144) | ADC_SMPR1_SMP_VREF(ADC_SAMPLE_144) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_144),
   .smpr2 = 0,
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN11) | ADC_SQR3_SQ2_N(ADC_CHANNEL_SENSOR)
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN11) | ADC_SQR3_SQ2_N(ADC_CHANNEL_VREFINT) | ADC_SQR3_SQ3_N(ADC_CHANNEL_SENSOR)
 };
 
 static const ADCConversionGroup adc2_config = {
@@ -77,12 +85,12 @@ static const ADCConversionGroup adc2_config = {
   .cr1 = ADC_CR1_SCAN,
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
-         | ADC_CR2_EXTEN_0, // trigger from ADC1, requires ADC_CCR MULTI[4:0] to be set
-  .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_480) | ADC_SMPR1_SMP_VREF(ADC_SAMPLE_480),
+         | ADC_CR2_EXTEN_RISING, // trigger from ADC1, requires ADC_CCR MULTI[4:0] to be set
+  .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_144),
   .smpr2 = 0,
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12) | ADC_SQR3_SQ2_N(ADC_CHANNEL_VREFINT)
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12)
 };
 
 static const ADCConversionGroup adc3_config = {
@@ -93,12 +101,12 @@ static const ADCConversionGroup adc3_config = {
   .cr1 = ADC_CR1_SCAN,
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
-         | ADC_CR2_EXTEN_0, // trigger from ADC1, requires ADC_CCR MULTI[4:0] to be set
-  .smpr1 = ADC_SMPR1_SMP_AN13(ADC_SAMPLE_480),
+         | ADC_CR2_EXTEN_RISING, // trigger from ADC1, requires ADC_CCR MULTI[4:0] to be set
+  .smpr1 = ADC_SMPR1_SMP_AN13(ADC_SAMPLE_144),
   .smpr2 = 0,
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN13)
+  .sqr3 = ADC_SQR3_SQ2_N(ADC_CHANNEL_IN13)
 };
 
 static void setup_pin_modes(void) {
@@ -114,10 +122,10 @@ static void start_all_adcs(void) {
 
   adcSTM32EnableTSVREFE();
 
-  // STM32F4 uses the ChibiOS ADCv2 driver, which does not support dual/triple mode ADCs
-  // Instead, write the ADC_CCR MULTI register manually
+  // STM32F4 uses the ChibiOS ADCv2 driver, which does not support dual/triple mode ADCs natively
+  // Instead, write to the ADC_CCR MULTI register manually
   // 10110 is triple mode, regular simultaneous mode conversion
-  ADC->CCR = (ADC->CCR & ~0b11111) | 0b10110;
+  ADC->CCR = (ADC->CCR | ADC_CCR_MULTI_4 | ADC_CCR_MULTI_2 | ADC_CCR_MULTI_1) & ~ADC_CCR_MULTI_3 & ~ADC_CCR_MULTI_0;
 
   adcStartConversion(&ADCD1, &adc1_config, adc1_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
   adcStartConversion(&ADCD2, &adc2_config, adc2_samples, ADC_SAMPLES_SAVED_PER_CHANNEL);
@@ -173,15 +181,13 @@ void adc_stop_continuous_conversion(void) {
 float adc_temp(void) {
   // formula from reference manual section 13.10 subsection "Reading the temperature"
   // constant values from F407VG datasheet
-//  const float V_25 = 0.76; // voltage at 25C
-//  const float average_slope = 0.0025; // 2.5mV/C
-//  return (((adc1_samples[1] * ADC_VOLTAGE_FACTOR) - V_25) / average_slope) + 25;
-  return adc1_samples[1];
+  const float V_25 = 0.76; // voltage at 25C
+  const float average_slope = 0.0025; // 2.5mV/C
+  return (((adc1_samples[2] * ADC_VOLTAGE_FACTOR) - V_25) / average_slope) + 25;
 }
 
 float adc_vref(void) {
-//  return adc2_samples[1] * ADC_VOLTAGE_FACTOR;
-  return adc2_samples[1];
+  return adc1_samples[1] * ADC_VOLTAGE_FACTOR;
 }
 
 void adc_retrieve_phase_currents(float* buf) {

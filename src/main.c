@@ -69,7 +69,7 @@ int main(void) {
     }
     chThdSleepMilliseconds(1000);
 
-    log_println("ADC temp %.1fC deg", adc_temp());
+    log_println("ADC temp %.1fC", adc_temp());
     log_println("ADC Vref %.2fV", adc_vref());
   }
 }
