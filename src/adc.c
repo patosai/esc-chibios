@@ -9,6 +9,7 @@
 
 // On the STM32F407, all ADCs are run off of APB2
 // Last time I checked mcuconf.h, APB2 runs at 42MHz
+// ADCPRE divider is set at APB2 / 4, so ADC clock is 10.5MHz
 
 // samples_saved must be 1 or an even number
 #define ADC_SAMPLES_SAVED_PER_CHANNEL 1
@@ -21,25 +22,14 @@
 #define SAMPLE_TO_CURRENT_CONSTANT (ADC_VOLTAGE_FACTOR/PHASE_RESISTANCE_OHMS)
 
 #define ADC_TRIGGER_FREQUENCY 3500 // trigger frequency of ADCs (Hz)
+// 3500 was chosen since at 60V, given a 300KV motor, the motor would spin at most (60*300)RPM = 300rps. updating at 10x the rotation speed
+// should allow for FOC control. the bottleneck is really all the other FOC code, not the ADC speed.
 #define GPT2_TIMER_FREQUENCY 21000 // timer frequency, must be a multiple of ADC_TRIGGER_FREQUENCY, and must evenly divide APB1 = 21MHz
 // it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
 
 static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
 static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
-
-//static void adc_callback(ADCDriver *adc) {
-//  (void)adc;
-//  int adc_num = 0;
-//  if (adc->adc == ADC1) {
-//    adc_num = 1;
-//  } else if (adc->adc == ADC2) {
-//    adc_num = 2;
-//  } else if (adc->adc == ADC3)  {
-//    adc_num = 3;
-//  }
-//  log_println_in_interrupt("ADC %d callback", adc_num);
-//}
 
 static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
   (void)adc;
@@ -70,6 +60,7 @@ static const ADCConversionGroup adc1_config = {
   // ADCCLK operates at APB2/4 = 42MHz/4 = 10.5MHz
   // Temp and Vref need a min. sampling time of 10us = 105 cycles needed
   // smallest # cycles bigger than 105 is 144
+  // at 3.5kHz trigger, with the clock at 10.5MHz, ADC has 3000 cycles to do one conversion sequence
   .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_144) | ADC_SMPR1_SMP_VREF(ADC_SAMPLE_144) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_144),
   .smpr2 = 0,
   .sqr1 = 0,
@@ -178,7 +169,7 @@ void adc_stop_continuous_conversion(void) {
   stop_all_adcs();
 }
 
-float adc_temp(void) {
+float adc_temp_celsius(void) {
   // formula from reference manual section 13.10 subsection "Reading the temperature"
   // constant values from F407VG datasheet
   const float V_25 = 0.76; // voltage at 25C
