@@ -22,33 +22,46 @@
 #define SAMPLE_TO_CURRENT_CONSTANT (ADC_VOLTAGE_FACTOR/PHASE_RESISTANCE_OHMS)
 
 #define ADC_TRIGGER_FREQUENCY 3500 // trigger frequency of ADCs (Hz)
-// 3500 was chosen since at 60V, given a 300KV motor, the motor would spin at most (60*300)RPM = 300rps. updating at 10x the rotation speed
-// should allow for FOC control. the bottleneck is really all the other FOC code, not the ADC speed.
 #define GPT2_TIMER_FREQUENCY 21000 // timer frequency, must be a multiple of ADC_TRIGGER_FREQUENCY, and must evenly divide APB1 = 21MHz
-// it seems 10kHz works but not 1Khz, perhaps timer upper limit? TIM2 runs on APB1
+// it seems 10kHz works but system crashes at 1Khz, perhaps timer upper limit?
 
 static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
 static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
+static adcsample_t buffered_phase_current_samples[3];
+
+static uint8_t adcdriver_to_num(ADCDriver* adc) {
+  if (adc->adc == ADC1) {
+    return 1;
+  } else if (adc->adc == ADC2) {
+    return 2;
+  } else if (adc->adc == ADC3)  {
+    return 3;
+  }
+  chDbgAssert(false, "unknown ADC");
+  return 0;
+}
+
+static void all_adcs_converted_callback(ADCDriver* adc) {
+  // should only be enabled on one of the ADCs, otherwise it will be called multiple times
+  (void)adc;
+  led_5_toggle();
+  chSysLockFromISR();
+  buffered_phase_current_samples[0] = adc1_samples[0];
+  buffered_phase_current_samples[1] = adc2_samples[0];
+  buffered_phase_current_samples[2] = adc3_samples[0];
+  chSysUnlockFromISR();
+}
 
 static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
-  (void)adc;
-  int adc_num = 0;
-  if (adc->adc == ADC1) {
-    adc_num = 1;
-  } else if (adc->adc == ADC2) {
-    adc_num = 2;
-  } else if (adc->adc == ADC3)  {
-    adc_num = 3;
-  }
-  log_println_in_interrupt("ADC %d error %d", adc_num, err);
+  log_println_in_interrupt("ADC %d error %d", adcdriver_to_num(adc), err);
 }
 
 static const ADCConversionGroup adc1_config = {
   // circular buffer needs to be enabled for ADC triggering to work
   .circular = TRUE,
   .num_channels = ADC1_CHANNELS,
-  .end_cb = NULL,
+  .end_cb = all_adcs_converted_callback,
   .error_cb = adc_common_error_callback,
   .cr1 = ADC_CR1_SCAN, // set scan mode so ADC will convert SQR1/2/3 channels
   // https://www.st.com/content/ccc/resource/technical/document/reference_manual/3d/6d/5a/66/b4/99/40/d4/DM00031020.pdf/files/DM00031020.pdf/jcr:content/translations/en.DM00031020.pdf
@@ -133,14 +146,9 @@ static void stop_all_adcs(void) {
   adcStop(&ADCD1);
 }
 
-static void gpt_callback(GPTDriver *gpt) {
-  (void)gpt;
-  led_5_toggle();
-}
-
 static const GPTConfig gpt2_config = {
   .frequency = GPT2_TIMER_FREQUENCY,
-  .callback = gpt_callback,
+  .callback = NULL,
   // https://www.st.com/content/ccc/resource/technical/document/application_note/group0/91/01/84/3f/7c/67/41/3f/DM00236305/files/DM00236305.pdf/jcr:content/translations/en.DM00236305.pdf
   // see end of section 2.5
   // MMS[2:0] = 010 -> pulse on TRGO
@@ -184,12 +192,8 @@ float adc_vref(void) {
 void adc_retrieve_phase_currents(float* buf) {
   // disable interrupts to prevent DMA from updating samples in the middle of retrieval
   chSysLock();
-  buf[0] = adc1_samples[0];
-  buf[1] = adc2_samples[0];
-  buf[2] = adc3_samples[0];
+  buf[0] = buffered_phase_current_samples[0] * SAMPLE_TO_CURRENT_CONSTANT;
+  buf[0] = buffered_phase_current_samples[1] * SAMPLE_TO_CURRENT_CONSTANT;
+  buf[0] = buffered_phase_current_samples[2] * SAMPLE_TO_CURRENT_CONSTANT;
   chSysUnlock();
-
-  buf[0] = buf[0] * SAMPLE_TO_CURRENT_CONSTANT;
-  buf[1] = buf[1] * SAMPLE_TO_CURRENT_CONSTANT;
-  buf[2] = buf[2] * SAMPLE_TO_CURRENT_CONSTANT;
 }
