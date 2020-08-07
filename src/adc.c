@@ -3,6 +3,7 @@
 #include <stdarg.h>
 
 #include "adc.h"
+#include "constants.h"
 #include "led.h"
 #include "log.h"
 #include "serial.h"
@@ -27,7 +28,7 @@
 static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
 static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
-static adcsample_t buffered_phase_current_samples[3];
+static adcsample_t buffered_current_sense_voltages[3];
 
 static uint8_t adcdriver_to_num(ADCDriver* adc) {
   if (adc->adc == ADC1) {
@@ -46,9 +47,9 @@ static void all_adcs_converted_callback(ADCDriver* adc) {
   // should only be enabled on one of the ADCs, otherwise it will be called multiple times
   (void)adc;
   chSysLockFromISR();
-  buffered_phase_current_samples[0] = adc1_samples[0];
-  buffered_phase_current_samples[1] = adc2_samples[0];
-  buffered_phase_current_samples[2] = adc3_samples[0];
+  buffered_current_sense_voltages[0] = adc1_samples[0];
+  buffered_current_sense_voltages[1] = adc2_samples[0];
+  buffered_current_sense_voltages[2] = adc3_samples[0];
   chSysUnlockFromISR();
 }
 
@@ -191,14 +192,14 @@ float adc_vref(void) {
 void adc_retrieve_phase_currents(float* buf) {
   // disable interrupts to prevent DMA from updating samples in the middle of retrieval
   chSysLock();
-  buf[0] = buffered_phase_current_samples[0];
-  buf[1] = buffered_phase_current_samples[1];
-  buf[2] = buffered_phase_current_samples[2];
+  buf[0] = buffered_current_sense_voltages[0];
+  buf[1] = buffered_current_sense_voltages[1];
+  buf[2] = buffered_current_sense_voltages[2];
   chSysUnlock();
 
   // formula for converting ADC voltage to current
   // DRV takes -0.15 to 0.15V, amplifies it 20x (changeable via setting), and outputs 0 to 3.3V
-  buf[0] = ((3.3/2) - buf[0])/(20 * PHASE_RESISTANCE_OHMS);
-  buf[1] = ((3.3/2) - buf[1])/(20 * PHASE_RESISTANCE_OHMS);
-  buf[2] = ((3.3/2) - buf[2])/(20 * PHASE_RESISTANCE_OHMS);
+  buf[0] = ((3.3/2) - buf[0])/(DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS);
+  buf[1] = ((3.3/2) - buf[1])/(DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS);
+  buf[2] = ((3.3/2) - buf[2])/(DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS);
 }

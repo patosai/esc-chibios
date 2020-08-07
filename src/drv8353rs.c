@@ -1,3 +1,4 @@
+#include "constants.h"
 #include "drv8353rs.h"
 #include "spi.h"
 
@@ -115,10 +116,28 @@ void drv8353rs_init(void) {
       ;
   write_spi2(OVERCURRENT_CONTROL, tx_overcurrent_control);
 
+  uint8_t current_sense_amplification = 0b00;
+  switch (DRV_CURRENT_SENSE_AMPLIFICATION) {
+    case 5:
+      current_sense_amplification = 0b00;
+      break;
+    case 10:
+      current_sense_amplification = 0b01;
+      break;
+    case 20:
+      current_sense_amplification = 0b10;
+      break;
+    case 40:
+      current_sense_amplification = 0b11;
+      break;
+    default:
+      chDbgAssert(false, "invalid current sense amplification amount");
+      break;
+  }
   uint16_t tx_current_sense_control = 0 << 10 // sense amplifier positive is SPx
       | 0 << 9 // sense amplifier reference voltage is VREF
       | 0 << 8 // overcurrent for low side MOSFET is measured from SHx to SPx
-      | 0b10 << 6 // 20V/V shunt amplifier gain
+      | (current_sense_amplification & 0b11) << 6
       | 0 << 5 // sense overcurrent fault enabled
       | 0 << 4 // normal sense amplifier A operation
       | 0 << 3 // normal sense amplifier B operation
