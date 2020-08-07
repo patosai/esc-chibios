@@ -18,8 +18,7 @@
 #define ADC3_CHANNELS 1
 
 #define ADC_VOLTAGE_FACTOR (3.3 / 4095.0)
-#define PHASE_RESISTANCE_OHMS 0.005
-#define SAMPLE_TO_CURRENT_CONSTANT (ADC_VOLTAGE_FACTOR/PHASE_RESISTANCE_OHMS)
+#define PHASE_RESISTANCE_OHMS 0.0005
 
 #define ADC_TRIGGER_FREQUENCY 3500 // trigger frequency of ADCs (Hz)
 #define GPT2_TIMER_FREQUENCY 21000 // timer frequency, must be a multiple of ADC_TRIGGER_FREQUENCY, and must evenly divide APB1 = 21MHz
@@ -43,9 +42,9 @@ static uint8_t adcdriver_to_num(ADCDriver* adc) {
 }
 
 static void all_adcs_converted_callback(ADCDriver* adc) {
+  // using the MULTI trigger mode, this callback is called when all ADCs have sampled/converted
   // should only be enabled on one of the ADCs, otherwise it will be called multiple times
   (void)adc;
-  led_5_toggle();
   chSysLockFromISR();
   buffered_phase_current_samples[0] = adc1_samples[0];
   buffered_phase_current_samples[1] = adc2_samples[0];
@@ -192,8 +191,14 @@ float adc_vref(void) {
 void adc_retrieve_phase_currents(float* buf) {
   // disable interrupts to prevent DMA from updating samples in the middle of retrieval
   chSysLock();
-  buf[0] = buffered_phase_current_samples[0] * SAMPLE_TO_CURRENT_CONSTANT;
-  buf[0] = buffered_phase_current_samples[1] * SAMPLE_TO_CURRENT_CONSTANT;
-  buf[0] = buffered_phase_current_samples[2] * SAMPLE_TO_CURRENT_CONSTANT;
+  buf[0] = buffered_phase_current_samples[0];
+  buf[1] = buffered_phase_current_samples[1];
+  buf[2] = buffered_phase_current_samples[2];
   chSysUnlock();
+
+  // formula for converting ADC voltage to current
+  // DRV takes -0.15 to 0.15V, amplifies it 20x (changeable via setting), and outputs 0 to 3.3V
+  buf[0] = ((3.3/2) - buf[0])/(20 * PHASE_RESISTANCE_OHMS);
+  buf[1] = ((3.3/2) - buf[1])/(20 * PHASE_RESISTANCE_OHMS);
+  buf[2] = ((3.3/2) - buf[2])/(20 * PHASE_RESISTANCE_OHMS);
 }
