@@ -4,8 +4,9 @@
 
 #include "adc.h"
 #include "constants.h"
-#include "motor.h"
 #include "drv8353rs.h"
+#include "motor.h"
+#include "pid.h"
 
 // CONVENTION: Phase A is 0 rad, B is 2pi/3 rad, C is 4pi/3 rad
 
@@ -58,39 +59,19 @@
 
  */
 
-#define PWM_PERIOD_MAX 128
+#define PWM_FREQUENCY_HZ 70000
+#define PWM_PERIOD_TICKS_MAX 128
 #define SQRT_3_OVER_2 sqrt(3)/2.0
 
-typedef struct {
-  float p;
-  float i;
-  float d;
-  float last_error;
-  float accumulated_error;
-} pid_state_t;
-
-static pid_state_t pid_direct = {
-  .p = 2,
-  .i = 0,
-  .d = 0,
-  .last_error = 0,
-  .accumulated_error = 0
-};
-
-static pid_state_t pid_quadrature = {
-  .p = 2,
-  .i = 0,
-  .d = 0,
-  .last_error = 0,
-  .accumulated_error = 0
-};
+static pid_state_t pid_direct;
+static pid_state_t pid_quadrature;
 
 static float motor_phase_currents_buffer[3];
 static uint8_t motor_power_percentage;
 
 static PWMConfig pwm_config = {
-  .frequency = PWM_PERIOD_MAX*70000, // run at 70kHz
-  .period = PWM_PERIOD_MAX,
+  .frequency = PWM_PERIOD_TICKS_MAX*PWM_FREQUENCY_HZ,
+  .period = PWM_PERIOD_TICKS_MAX,
   .callback = NULL,
   .channels = {
     {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
@@ -126,10 +107,11 @@ void motor_init(void) {
   drv8353rs_init();
   motor_power_percentage = 0;
 
-  pid_direct.last_error = 0;
-  pid_direct.accumulated_error = 0;
-  pid_quadrature.last_error = 0;
-  pid_quadrature.accumulated_error = 0;
+  pid_direct = pid_create(2, 0, 0);
+  pid_quadrature = pid_create(2, 0, 0);
+
+  pid_reset(&pid_direct);
+  pid_reset(&pid_quadrature);
 }
 
 void motor_set_power_percentage(uint8_t power_percentage) {
@@ -139,14 +121,6 @@ void motor_set_power_percentage(uint8_t power_percentage) {
 static float get_rotor_flux_direction_radians(void) {
   // TODO
   return 0;
-}
-
-static float update_pid_state(pid_state_t *state, float expected_value, float new_value) {
-  float error = expected_value - new_value;
-  state->accumulated_error += error;
-  float output = (state->p * error) + (state->i * state->accumulated_error) + (state->d * (state->last_error - error));
-  state->last_error = error;
-  return output;
 }
 
 void motor_update_routine(void) {
@@ -163,8 +137,8 @@ void motor_update_routine(void) {
 
   // TODO make sure transforms don't result in magnitude changes
   // TODO fix D/Q expected values
-  float direct_output = update_pid_state(&pid_direct, 0, i_direct);
-  float quadrature_output = update_pid_state(&pid_quadrature, 1, i_quadrature);
+  float direct_output = pid_update(&pid_direct, 0, i_direct);
+  float quadrature_output = pid_update(&pid_quadrature, 1, i_quadrature);
 
   float v_alpha = direct_output*cos_component - quadrature_output*sin_component;
   float v_beta = direct_output*sin_component + quadrature_output*cos_component;
@@ -173,7 +147,7 @@ void motor_update_routine(void) {
   float v_phase_2 = v_beta*SQRT_3_OVER_2 - v_alpha/2;
   float v_phase_3 = -v_beta*SQRT_3_OVER_2 - v_alpha/2;
 
-  pwmEnableChannel(&PWMD1, 0, (pwmcnt_t)(v_phase_1/BATTERY_VOLTAGE * PWM_PERIOD_MAX));
-  pwmEnableChannel(&PWMD1, 1, (pwmcnt_t)(v_phase_2/BATTERY_VOLTAGE * PWM_PERIOD_MAX));
-  pwmEnableChannel(&PWMD1, 2, (pwmcnt_t)(v_phase_3/BATTERY_VOLTAGE * PWM_PERIOD_MAX));
+  pwmEnableChannel(&PWMD1, 0, (pwmcnt_t)(v_phase_1/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
+  pwmEnableChannel(&PWMD1, 1, (pwmcnt_t)(v_phase_2/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
+  pwmEnableChannel(&PWMD1, 2, (pwmcnt_t)(v_phase_3/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
 }
