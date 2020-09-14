@@ -66,20 +66,20 @@
 static pid_state_t pid_direct;
 static pid_state_t pid_quadrature;
 
-static float motor_phase_currents_buffer[3];
+//static float motor_phase_currents_buffer[3];
 static uint8_t motor_power_percentage;
 
-static PWMConfig pwm_config = {
-  .frequency = PWM_PERIOD_TICKS_MAX*PWM_FREQUENCY_HZ,
-  .period = PWM_PERIOD_TICKS_MAX,
-  .callback = NULL,
-  .channels = {
-    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
-    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
-    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
-    {.mode = PWM_OUTPUT_DISABLED, .callback = NULL}
-  }
-};
+//static PWMConfig pwm_config = {
+//  .frequency = PWM_PERIOD_TICKS_MAX*PWM_FREQUENCY_HZ,
+//  .period = PWM_PERIOD_TICKS_MAX,
+//  .callback = NULL,
+//  .channels = {
+//    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
+//    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
+//    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
+//    {.mode = PWM_OUTPUT_DISABLED, .callback = NULL}
+//  }
+//};
 
 static void setup_pwm(void) {
   palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL);
@@ -96,14 +96,20 @@ static void setup_pwm(void) {
   palSetPad(GPIOC, 4);
   palClearPad(GPIOC, 5);
 
-  pwmStart(&PWMD1, &pwm_config);
-  for (uint8_t channel = 0; channel < 3; ++channel) {
-    pwmEnableChannel(&PWMD1, channel, 0);
-  }
+//  pwmStart(&PWMD1, &pwm_config);
+//  for (uint8_t channel = 0; channel < 3; ++channel) {
+//    pwmEnableChannel(&PWMD1, channel, 0);
+//  }
 }
+
+static void setup_hall_sensors(void) {
+  palSetPadMode(GPIOD, 0, PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOD, 1, PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOD, 2, PAL_MODE_INPUT_PULLUP); }
 
 void motor_init(void) {
   setup_pwm();
+  setup_hall_sensors();
   drv8353rs_init();
   motor_power_percentage = 0;
 
@@ -118,36 +124,137 @@ void motor_set_power_percentage(uint8_t power_percentage) {
   motor_power_percentage = power_percentage;
 }
 
-static float get_rotor_flux_direction_radians(void) {
-  // TODO
-  return 0;
+//static float get_rotor_flux_direction_radians(void) {
+//  // TODO
+//}
+//
+// TODO reenable FOC on V1.1 esc
+//void motor_update_routine(void) {
+//  adc_retrieve_phase_currents(motor_phase_currents_buffer);
+//
+//  float i_alpha = motor_phase_currents_buffer[0] - motor_phase_currents_buffer[1]*0.5 - motor_phase_currents_buffer[2]*0.5;
+//  float i_beta = SQRT_3_OVER_2*(motor_phase_currents_buffer[1] - motor_phase_currents_buffer[2]);
+//
+//  float rotor_flux_direction_radians = get_rotor_flux_direction_radians();
+//  float cos_component = cos(rotor_flux_direction_radians);
+//  float sin_component = sin(rotor_flux_direction_radians);
+//  float i_direct = i_alpha*cos_component + i_beta*sin_component;
+//  float i_quadrature = -i_alpha*sin_component + i_beta*cos_component;
+//
+//  // TODO fix D/Q expected values
+//  float direct_output = pid_update(&pid_direct, 0, i_direct);
+//  // quadrature amperage should go from 0 to 15A
+//  float quadrature_output = pid_update(&pid_quadrature, 1, i_quadrature);
+//
+//  float v_alpha = direct_output*cos_component - quadrature_output*sin_component;
+//  float v_beta = direct_output*sin_component + quadrature_output*cos_component;
+//
+//  float v_phase_1 = v_alpha;
+//  float v_phase_2 = v_beta*SQRT_3_OVER_2 - v_alpha/2;
+//  float v_phase_3 = -v_beta*SQRT_3_OVER_2 - v_alpha/2;
+//
+//  pwmEnableChannel(&PWMD1, 0, (pwmcnt_t)(v_phase_1/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
+//  pwmEnableChannel(&PWMD1, 1, (pwmcnt_t)(v_phase_2/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
+//  pwmEnableChannel(&PWMD1, 2, (pwmcnt_t)(v_phase_3/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
+//}
+
+static void set_phase_a_high(void) {
+  palSetPad(GPIOA, 4);
+  palClearPad(GPIOA, 5);
 }
 
+static void set_phase_a_low(void) {
+  palClearPad(GPIOA, 4);
+  palSetPad(GPIOA, 5);
+}
+
+static void disconnect_phase_a(void) {
+  palClearPad(GPIOA, 4);
+  palClearPad(GPIOA, 5);
+}
+
+static void set_phase_b_high(void) {
+  palSetPad(GPIOA, 6);
+  palClearPad(GPIOA, 7);
+}
+
+static void set_phase_b_low(void) {
+  palClearPad(GPIOA, 6);
+  palSetPad(GPIOA, 7);
+}
+
+static void disconnect_phase_b(void) {
+  palClearPad(GPIOA, 4);
+  palClearPad(GPIOA, 7);
+}
+
+static void set_phase_c_high(void) {
+  palSetPad(GPIOC, 4);
+  palClearPad(GPIOC, 5);
+}
+
+static void set_phase_c_low(void) {
+  palClearPad(GPIOC, 4);
+  palSetPad(GPIOC, 5);
+}
+
+static void disconnect_phase_c(void) {
+  palClearPad(GPIOC, 4);
+  palClearPad(GPIOC, 5);
+}
+
+// shitty PWM implementation to compensate for bad wiring
+static uint8_t pwm_counter = 0;
+
 void motor_update_routine(void) {
-  adc_retrieve_phase_currents(motor_phase_currents_buffer);
+  if (motor_power_percentage < 50) {
+    disconnect_phase_a();
+    disconnect_phase_b();
+    disconnect_phase_c();
+    return;
+  }
 
-  float i_alpha = motor_phase_currents_buffer[0] - motor_phase_currents_buffer[1]*0.5 - motor_phase_currents_buffer[2]*0.5;
-  float i_beta = SQRT_3_OVER_2*(motor_phase_currents_buffer[1] - motor_phase_currents_buffer[2]);
+  if (pwm_counter >= 100) {
+    pwm_counter = 0;
+  } else {
+    ++pwm_counter;
+  }
 
-  float rotor_flux_direction_radians = get_rotor_flux_direction_radians();
-  float cos_component = cos(rotor_flux_direction_radians);
-  float sin_component = sin(rotor_flux_direction_radians);
-  float i_direct = i_alpha*cos_component + i_beta*sin_component;
-  float i_quadrature = -i_alpha*sin_component + i_beta*cos_component;
+  if (pwm_counter < motor_power_percentage) {
+    disconnect_phase_a();
+    disconnect_phase_b();
+    disconnect_phase_c();
+    return;
+  }
 
-  // TODO make sure transforms don't result in magnitude changes
-  // TODO fix D/Q expected values
-  float direct_output = pid_update(&pid_direct, 0, i_direct);
-  float quadrature_output = pid_update(&pid_quadrature, 1, i_quadrature);
+  // commutation
+  bool phase_a_high = palReadPad(GPIOD, 0) == PAL_HIGH;
+  bool phase_b_high = palReadPad(GPIOD, 1) == PAL_HIGH;
+  bool phase_c_high = palReadPad(GPIOD, 2) == PAL_HIGH;
 
-  float v_alpha = direct_output*cos_component - quadrature_output*sin_component;
-  float v_beta = direct_output*sin_component + quadrature_output*cos_component;
-
-  float v_phase_1 = v_alpha;
-  float v_phase_2 = v_beta*SQRT_3_OVER_2 - v_alpha/2;
-  float v_phase_3 = -v_beta*SQRT_3_OVER_2 - v_alpha/2;
-
-  pwmEnableChannel(&PWMD1, 0, (pwmcnt_t)(v_phase_1/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
-  pwmEnableChannel(&PWMD1, 1, (pwmcnt_t)(v_phase_2/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
-  pwmEnableChannel(&PWMD1, 2, (pwmcnt_t)(v_phase_3/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
+  if (!phase_a_high && phase_b_high && phase_c_high) {
+    set_phase_a_high();
+    disconnect_phase_b();
+    set_phase_c_low();
+  } else if (!phase_a_high && phase_b_high && phase_c_high) {
+    disconnect_phase_a();
+    set_phase_b_high();
+    set_phase_c_low();
+  } else if (!phase_a_high && !phase_b_high && phase_c_high) {
+    set_phase_a_low();
+    set_phase_b_high();
+    disconnect_phase_c();
+  } else if (phase_a_high && !phase_b_high && phase_c_high) {
+    set_phase_a_low();
+    disconnect_phase_b();
+    set_phase_c_high();
+  } else if (phase_a_high && !phase_b_high && !phase_c_high) {
+    disconnect_phase_a();
+    set_phase_b_low();
+    set_phase_c_high();
+  } else if (phase_a_high && phase_b_high && !phase_c_high) {
+    set_phase_a_high();
+    set_phase_b_low();
+    disconnect_phase_c();
+  }
 }
