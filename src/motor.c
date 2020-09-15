@@ -121,6 +121,7 @@ void motor_init(void) {
 }
 
 void motor_set_power_percentage(uint8_t power_percentage) {
+  power_percentage = power_percentage > 100 ? 100 : power_percentage;
   motor_power_percentage = power_percentage;
 }
 
@@ -207,7 +208,7 @@ static void disconnect_phase_c(void) {
 static uint8_t pwm_counter = 0;
 
 void motor_update_routine(void) {
-  if (motor_power_percentage < 50) {
+  if (motor_power_percentage < 10) {
     disconnect_phase_a();
     disconnect_phase_b();
     disconnect_phase_c();
@@ -255,6 +256,11 @@ void motor_update_routine(void) {
   } else if (phase_a_high && phase_b_high && !phase_c_high) {
     set_phase_a_high();
     set_phase_b_low();
+    disconnect_phase_c();
+  } else {
+    // this shouldn't happen
+    disconnect_phase_a();
+    disconnect_phase_b();
     disconnect_phase_c();
   }
 }

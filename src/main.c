@@ -55,11 +55,27 @@ static void create_threads(void) {
   chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), LOWPRIO, ThreadLedBlinker, NULL);
 }
 
+static void gpt3_callback(GPTDriver *driver) {
+  (void)driver;
+  motor_update_routine();
+}
+
+static GPTConfig gpt3cfg = {
+  .frequency = 10000,
+  .callback = gpt3_callback,
+};
+
 int main(void) {
   init();
   create_threads();
 
   adc_start_continuous_conversion();
+
+  gptStart(&GPTD3, &gpt3cfg);
+  gptStartContinuous(&GPTD3, 2); // run at 5kHz
+
+//  chThdSleepMilliseconds(2000);
+//  motor_set_power_percentage(10);
 
   while (true) {
     if (drv8353rs_has_fault()) {
