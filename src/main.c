@@ -72,12 +72,13 @@ int main(void) {
   adc_start_continuous_conversion();
 
   gptStart(&GPTD3, &gpt3cfg);
-  gptStartContinuous(&GPTD3, 2); // run at 5kHz
+  gptStartContinuous(&GPTD3, 10); // run at 1kHz
 
-//  chThdSleepMilliseconds(2000);
-//  motor_set_power_percentage(10);
+  chThdSleepMilliseconds(2000);
+  motor_set_power_percentage(20);
 
   while (true) {
+    led_1_toggle();
     if (drv8353rs_has_fault()) {
       led_3_turn_on();
       log_println("DRV8353RS error, Fault 1: %x, Fault 2: %x",

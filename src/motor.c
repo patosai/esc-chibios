@@ -207,21 +207,73 @@ static void disconnect_phase_c(void) {
 // shitty PWM implementation to compensate for bad wiring
 static uint8_t pwm_counter = 0;
 
-void motor_update_routine(void) {
-  if (motor_power_percentage < 10) {
-    disconnect_phase_a();
-    disconnect_phase_b();
-    disconnect_phase_c();
-    return;
-  }
+//void motor_update_routine(void) {
+//  if (motor_power_percentage < 10) {
+//    disconnect_phase_a();
+//    disconnect_phase_b();
+//    disconnect_phase_c();
+//    return;
+//  }
+//
+//  if (pwm_counter >= 100) {
+//    pwm_counter = 0;
+//  } else {
+//    ++pwm_counter;
+//  }
+//
+//  if (pwm_counter < motor_power_percentage) {
+//    disconnect_phase_a();
+//    disconnect_phase_b();
+//    disconnect_phase_c();
+//    return;
+//  }
+//
+//  // commutation
+//  bool phase_a_high = palReadPad(GPIOD, 0) == PAL_HIGH;
+//  bool phase_b_high = palReadPad(GPIOD, 1) == PAL_HIGH;
+//  bool phase_c_high = palReadPad(GPIOD, 2) == PAL_HIGH;
+//
+//  if (!phase_a_high && phase_b_high && phase_c_high) {
+//    set_phase_a_high();
+//    disconnect_phase_b();
+//    set_phase_c_low();
+//  } else if (!phase_a_high && phase_b_high && phase_c_high) {
+//    disconnect_phase_a();
+//    set_phase_b_high();
+//    set_phase_c_low();
+//  } else if (!phase_a_high && !phase_b_high && phase_c_high) {
+//    set_phase_a_low();
+//    set_phase_b_high();
+//    disconnect_phase_c();
+//  } else if (phase_a_high && !phase_b_high && phase_c_high) {
+//    set_phase_a_low();
+//    disconnect_phase_b();
+//    set_phase_c_high();
+//  } else if (phase_a_high && !phase_b_high && !phase_c_high) {
+//    disconnect_phase_a();
+//    set_phase_b_low();
+//    set_phase_c_high();
+//  } else if (phase_a_high && phase_b_high && !phase_c_high) {
+//    set_phase_a_high();
+//    set_phase_b_low();
+//    disconnect_phase_c();
+//  } else {
+//    // this shouldn't happen
+//    disconnect_phase_a();
+//    disconnect_phase_b();
+//    disconnect_phase_c();
+//  }
+//}
 
-  if (pwm_counter >= 100) {
+void motor_update_routine(void) {
+  const int updates_per_state = 100;
+  if (pwm_counter >= 6*updates_per_state) {
     pwm_counter = 0;
   } else {
     ++pwm_counter;
   }
 
-  if (pwm_counter < motor_power_percentage) {
+  if (pwm_counter % 100 > motor_power_percentage) {
     disconnect_phase_a();
     disconnect_phase_b();
     disconnect_phase_c();
@@ -229,38 +281,43 @@ void motor_update_routine(void) {
   }
 
   // commutation
-  bool phase_a_high = palReadPad(GPIOD, 0) == PAL_HIGH;
-  bool phase_b_high = palReadPad(GPIOD, 1) == PAL_HIGH;
-  bool phase_c_high = palReadPad(GPIOD, 2) == PAL_HIGH;
-
-  if (!phase_a_high && phase_b_high && phase_c_high) {
+  switch (pwm_counter % updates_per_state) {
+  case 0:
     set_phase_a_high();
     disconnect_phase_b();
     set_phase_c_low();
-  } else if (!phase_a_high && phase_b_high && phase_c_high) {
+    break;
+  case 1:
     disconnect_phase_a();
     set_phase_b_high();
     set_phase_c_low();
-  } else if (!phase_a_high && !phase_b_high && phase_c_high) {
+    break;
+  case 2:
     set_phase_a_low();
     set_phase_b_high();
     disconnect_phase_c();
-  } else if (phase_a_high && !phase_b_high && phase_c_high) {
+    break;
+  case 3:
     set_phase_a_low();
     disconnect_phase_b();
     set_phase_c_high();
-  } else if (phase_a_high && !phase_b_high && !phase_c_high) {
+    break;
+  case 4:
     disconnect_phase_a();
     set_phase_b_low();
     set_phase_c_high();
-  } else if (phase_a_high && phase_b_high && !phase_c_high) {
+    break;
+  case 5:
     set_phase_a_high();
     set_phase_b_low();
     disconnect_phase_c();
-  } else {
+    break;
+  default:
     // this shouldn't happen
+    pwm_counter = 0;
     disconnect_phase_a();
     disconnect_phase_b();
     disconnect_phase_c();
+    break;
   }
 }
