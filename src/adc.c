@@ -15,7 +15,7 @@
 // samples_saved must be 1 or an even number
 #define ADC_SAMPLES_SAVED_PER_CHANNEL 1
 #define ADC1_CHANNELS 3
-#define ADC2_CHANNELS 1
+#define ADC2_CHANNELS 2
 #define ADC3_CHANNELS 1
 
 #define ADC_VOLTAGE_FACTOR (3.3 / 4095.0)
@@ -78,7 +78,7 @@ static const ADCConversionGroup adc1_config = {
   .smpr2 = 0,
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN11) | ADC_SQR3_SQ2_N(ADC_CHANNEL_VREFINT) | ADC_SQR3_SQ3_N(ADC_CHANNEL_SENSOR)
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN11) | ADC_SQR3_SQ2_N(ADC_CHANNEL_VREFINT) | ADC_SQR3_SQ3_N(ADC_CHANNEL_SENSOR),
 };
 
 static const ADCConversionGroup adc2_config = {
@@ -91,10 +91,10 @@ static const ADCConversionGroup adc2_config = {
          | ADC_CR2_DMA
          | ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
   .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_144),
-  .smpr2 = 0,
+  .smpr2 = ADC_SMPR2_SMP_AN6(ADC_SAMPLE_144),
   .sqr1 = 0,
-  .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12)
+  .sqr2 = ADC_SQR2_SQ7_N(ADC_CHANNEL_IN6),
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12),
 };
 
 static const ADCConversionGroup adc3_config = {
@@ -110,13 +110,15 @@ static const ADCConversionGroup adc3_config = {
   .smpr2 = 0,
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ2_N(ADC_CHANNEL_IN13)
+  .sqr3 = ADC_SQR3_SQ2_N(ADC_CHANNEL_IN13),
 };
 
 static void setup_pin_modes(void) {
-  palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG);
-  palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG);
-  palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG);
+  palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG); // throttle input
+
+  palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG); // DRV SOA
+  palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG); // DRV SOC
+  palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG); // DRV SOB
 }
 
 static void start_all_adcs(void) {
@@ -183,6 +185,18 @@ float adc_temp_celsius(void) {
   const float V_25 = 0.76; // voltage at 25C
   const float average_slope = 0.0025; // 2.5mV/C
   return (((adc1_samples[2] * ADC_VOLTAGE_FACTOR) - V_25) / average_slope) + 25;
+}
+
+float adc_throttle_percentage(void) {
+  // 1 - 3V
+  float voltage = adc2_samples[1] * ADC_VOLTAGE_FACTOR;
+  float percentage = (voltage - 1.0)/3.0;
+  if (percentage < 0) {
+    percentage = 0;
+  } else if (percentage > 100.0) {
+    percentage = 100;
+  }
+  return percentage;
 }
 
 float adc_vref(void) {

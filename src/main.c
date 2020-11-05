@@ -72,16 +72,16 @@ int main(void) {
   adc_start_continuous_conversion();
 
   gptStart(&GPTD3, &gpt3cfg);
-  gptStartContinuous(&GPTD3, 10); // run at 1kHz
+  gptStartContinuous(&GPTD3, 2); // run at 5kHz
 
   chThdSleepMilliseconds(2000);
-  motor_set_power_percentage(20);
+  motor_set_power_percentage(0);
 
   while (true) {
     led_1_toggle();
     if (drv8353rs_has_fault()) {
       led_3_turn_on();
-      log_println("DRV8353RS error, Fault 1: %x, Fault 2: %x",
+      log_println("DRV8353RS error, Fault 1: 0x%x, Fault 2: 0x%x",
         drv8353rs_read_register(FAULT_STATUS_1),
         drv8353rs_read_register(FAULT_STATUS_2)
       );
@@ -90,7 +90,6 @@ int main(void) {
     }
     chThdSleepMilliseconds(1000);
 
-    log_println("ADC temp %.1fC", adc_temp_celsius());
-    log_println("ADC Vref %.2fV", adc_vref());
+    log_println("ADC temp %.1fC, Vref %.2fV", adc_temp_celsius(), adc_vref());
   }
 }

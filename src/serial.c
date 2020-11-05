@@ -18,8 +18,10 @@ static SerialConfig config = {
 
 void serial1_init(void) {
   sdStart(&SD1, &config);
-  palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7));
-  palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7));
+  palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7)); // TX
+  palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7)); // RX
+  palSetPadMode(GPIOA, 11, PAL_MODE_ALTERNATE(7)); // CTS
+  palSetPadMode(GPIOA, 12, PAL_MODE_ALTERNATE(7)); // RTS
 }
 
 int serial1_send(const char *fmt, ...) {

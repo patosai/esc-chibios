@@ -74,7 +74,7 @@ void drv8353rs_init(void) {
   uint16_t tx_driver_control = 0 << 10 // associated half bridge shutdown in response to overcurrent
       | 0 << 9 // undervoltage lockout fault enabled
       | 1 << 7 // thermal warning reported on nFAULT and FAULT bit
-      | 1 << 5 // 3x PWM mode  low input should be tied high, high input controls gate
+      | 0 << 5 // 6x PWM mode - low and high on each MOSFET controlled separately
       | 0 << 4 // 1x PWM mode uses synchronous rectification, doesn't apply since not using 1x PWM mode
       | 0 << 3 // in 1x PWM, this bit is ORed with INHC (DIR) input, doesn't apply since not using 1x PWM mode
       | 0 << 2 // don't coast the motor

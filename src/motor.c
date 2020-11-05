@@ -67,51 +67,45 @@ static pid_state_t pid_direct;
 static pid_state_t pid_quadrature;
 
 //static float motor_phase_currents_buffer[3];
-static uint8_t motor_power_percentage;
+static uint16_t motor_pwm_period_ticks;
 
-//static PWMConfig pwm_config = {
-//  .frequency = PWM_PERIOD_TICKS_MAX*PWM_FREQUENCY_HZ,
-//  .period = PWM_PERIOD_TICKS_MAX,
-//  .callback = NULL,
-//  .channels = {
-//    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
-//    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
-//    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
-//    {.mode = PWM_OUTPUT_DISABLED, .callback = NULL}
-//  }
-//};
+static PWMConfig pwm_config = {
+  .frequency = PWM_PERIOD_TICKS_MAX*PWM_FREQUENCY_HZ,
+  .period = PWM_PERIOD_TICKS_MAX,
+  .callback = NULL,
+  .channels = {
+    {.mode = PWM_OUTPUT_ACTIVE_HIGH | PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW, .callback = NULL},
+    {.mode = PWM_OUTPUT_ACTIVE_HIGH | PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW, .callback = NULL},
+    {.mode = PWM_OUTPUT_ACTIVE_HIGH | PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW, .callback = NULL},
+    {.mode = PWM_OUTPUT_DISABLED, .callback = NULL}
+  }
+};
 
 static void setup_pwm(void) {
-  palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOA, 5, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOA, 6, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOA, 7, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOC, 4, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOC, 5, PAL_MODE_OUTPUT_PUSHPULL);
+  pwmStart(&PWMD1, &pwm_config);
+  for (uint8_t channel = 0; channel < 3; ++channel) {
+    pwmEnableChannel(&PWMD1, channel, 0);
+  }
 
-  palSetPad(GPIOA, 4);
-  palClearPad(GPIOA, 5);
-  palSetPad(GPIOA, 6);
-  palClearPad(GPIOA, 7);
-  palSetPad(GPIOC, 4);
-  palClearPad(GPIOC, 5);
-
-//  pwmStart(&PWMD1, &pwm_config);
-//  for (uint8_t channel = 0; channel < 3; ++channel) {
-//    pwmEnableChannel(&PWMD1, channel, 0);
-//  }
+  palSetPadMode(GPIOE, 8, PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOE, 9, PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOE, 10, PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOE, 11, PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOE, 12, PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOE, 13, PAL_MODE_ALTERNATE(1));
 }
 
 static void setup_hall_sensors(void) {
-  palSetPadMode(GPIOD, 0, PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOD, 1, PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOD, 2, PAL_MODE_INPUT_PULLUP); }
+  palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_PULLUP);
+}
 
 void motor_init(void) {
   setup_pwm();
   setup_hall_sensors();
   drv8353rs_init();
-  motor_power_percentage = 0;
+  motor_pwm_period_ticks = 0;
 
   pid_direct = pid_create(2, 0, 0);
   pid_quadrature = pid_create(2, 0, 0);
@@ -120,9 +114,11 @@ void motor_init(void) {
   pid_reset(&pid_quadrature);
 }
 
-void motor_set_power_percentage(uint8_t power_percentage) {
+void motor_set_power_percentage(float power_percentage) {
   power_percentage = power_percentage > 100 ? 100 : power_percentage;
-  motor_power_percentage = power_percentage;
+  uint16_t ticks = (uint16_t)(power_percentage * PWM_PERIOD_TICKS_MAX);
+  ticks = ticks > PWM_PERIOD_TICKS_MAX ? PWM_PERIOD_TICKS_MAX : ticks;
+  motor_pwm_period_ticks = ticks;
 }
 
 //static float get_rotor_flux_direction_radians(void) {
@@ -160,55 +156,55 @@ void motor_set_power_percentage(uint8_t power_percentage) {
 //}
 
 static void set_phase_a_high(void) {
-  palSetPad(GPIOA, 4);
-  palClearPad(GPIOA, 5);
+  pwmEnableChannel(&PWMD1, 2, motor_pwm_period_ticks);
 }
 
 static void set_phase_a_low(void) {
-  palClearPad(GPIOA, 4);
-  palSetPad(GPIOA, 5);
+  pwmEnableChannel(&PWMD1, 2, motor_pwm_period_ticks);
+  palClearPad(GPIOE, 13);
+  palSetPad(GPIOE, 12);
 }
 
 static void disconnect_phase_a(void) {
-  palClearPad(GPIOA, 4);
-  palClearPad(GPIOA, 5);
+  palClearPad(GPIOE, 13);
+  palClearPad(GPIOE, 12);
 }
 
 static void set_phase_b_high(void) {
-  palSetPad(GPIOA, 6);
-  palClearPad(GPIOA, 7);
+  palSetPad(GPIOE, 11);
+  palClearPad(GPIOE, 10);
 }
 
 static void set_phase_b_low(void) {
-  palClearPad(GPIOA, 6);
-  palSetPad(GPIOA, 7);
+  palClearPad(GPIOE, 11);
+  palSetPad(GPIOE, 10);
 }
 
 static void disconnect_phase_b(void) {
-  palClearPad(GPIOA, 4);
-  palClearPad(GPIOA, 7);
+  palClearPad(GPIOE, 11);
+  palClearPad(GPIOE, 10);
 }
 
 static void set_phase_c_high(void) {
-  palSetPad(GPIOC, 4);
-  palClearPad(GPIOC, 5);
+  palSetPad(GPIOE, 9);
+  palClearPad(GPIOE, 8);
 }
 
 static void set_phase_c_low(void) {
-  palClearPad(GPIOC, 4);
-  palSetPad(GPIOC, 5);
+  palClearPad(GPIOE, 9);
+  palSetPad(GPIOE, 8);
 }
 
 static void disconnect_phase_c(void) {
-  palClearPad(GPIOC, 4);
-  palClearPad(GPIOC, 5);
+  palClearPad(GPIOE, 9);
+  palClearPad(GPIOE, 8);
 }
 
 // shitty PWM implementation to compensate for bad wiring
 static uint8_t pwm_counter = 0;
 
 //void motor_update_routine(void) {
-//  if (motor_power_percentage < 10) {
+//  if (motor_pwm_period_ticks < 10) {
 //    disconnect_phase_a();
 //    disconnect_phase_b();
 //    disconnect_phase_c();
@@ -221,7 +217,7 @@ static uint8_t pwm_counter = 0;
 //    ++pwm_counter;
 //  }
 //
-//  if (pwm_counter < motor_power_percentage) {
+//  if (pwm_counter < motor_pwm_period_ticks) {
 //    disconnect_phase_a();
 //    disconnect_phase_b();
 //    disconnect_phase_c();
@@ -266,14 +262,21 @@ static uint8_t pwm_counter = 0;
 //}
 
 void motor_update_routine(void) {
-  const int updates_per_state = 100;
+  set_phase_a_high();
+  set_phase_b_low();
+  set_phase_c_low();
+  return;
+
+  const int pwm_cycles_per_state = 10;
+  const int updates_per_cycle = 100;
+  const int updates_per_state = pwm_cycles_per_state * updates_per_cycle;
   if (pwm_counter >= 6*updates_per_state) {
     pwm_counter = 0;
   } else {
     ++pwm_counter;
   }
 
-  if (pwm_counter % 100 > motor_power_percentage) {
+  if ((pwm_counter % 100) > motor_pwm_period_ticks) {
     disconnect_phase_a();
     disconnect_phase_b();
     disconnect_phase_c();
@@ -281,7 +284,7 @@ void motor_update_routine(void) {
   }
 
   // commutation
-  switch (pwm_counter % updates_per_state) {
+  switch ((int)(pwm_counter / updates_per_state)) {
   case 0:
     set_phase_a_high();
     disconnect_phase_b();
