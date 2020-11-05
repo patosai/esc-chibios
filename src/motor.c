@@ -74,9 +74,9 @@ static PWMConfig pwm_config = {
   .period = PWM_PERIOD_TICKS_MAX,
   .callback = NULL,
   .channels = {
-    {.mode = PWM_OUTPUT_ACTIVE_HIGH | PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW, .callback = NULL},
-    {.mode = PWM_OUTPUT_ACTIVE_HIGH | PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW, .callback = NULL},
-    {.mode = PWM_OUTPUT_ACTIVE_HIGH | PWM_COMPLEMENTARY_OUTPUT_ACTIVE_LOW, .callback = NULL},
+    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
+    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
+    {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
     {.mode = PWM_OUTPUT_DISABLED, .callback = NULL}
   }
 };
@@ -87,12 +87,16 @@ static void setup_pwm(void) {
     pwmEnableChannel(&PWMD1, channel, 0);
   }
 
-  palSetPadMode(GPIOE, 8, PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOE, 8, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOE, 9, PAL_MODE_ALTERNATE(1));
-  palSetPadMode(GPIOE, 10, PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOE, 10, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOE, 11, PAL_MODE_ALTERNATE(1));
-  palSetPadMode(GPIOE, 12, PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOE, 12, PAL_MODE_OUTPUT_PUSHPULL);
   palSetPadMode(GPIOE, 13, PAL_MODE_ALTERNATE(1));
+
+  palClearPad(GPIOE, 9);
+  palClearPad(GPIOE, 11);
+  palClearPad(GPIOE, 13);
 }
 
 static void setup_hall_sensors(void) {
@@ -155,172 +159,36 @@ void motor_set_power_percentage(float power_percentage) {
 //  pwmEnableChannel(&PWMD1, 2, (pwmcnt_t)(v_phase_3/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
 //}
 
-static void set_phase_a_high(void) {
-  pwmEnableChannel(&PWMD1, 2, motor_pwm_period_ticks);
-}
-
-static void set_phase_a_low(void) {
-  pwmEnableChannel(&PWMD1, 2, motor_pwm_period_ticks);
-  palClearPad(GPIOE, 13);
-  palSetPad(GPIOE, 12);
+static void set_phase_a_ticks(uint16_t ticks) {
+  pwmEnableChannel(&PWMD1, 2, ticks);
+  pwmSetPad(GPIOE, 8);
 }
 
 static void disconnect_phase_a(void) {
-  palClearPad(GPIOE, 13);
-  palClearPad(GPIOE, 12);
+  pwmClearPad(GPIOE, 8);
+  pwmDisableChannel(&PWMD1, 2);
 }
 
-static void set_phase_b_high(void) {
-  palSetPad(GPIOE, 11);
-  palClearPad(GPIOE, 10);
-}
-
-static void set_phase_b_low(void) {
-  palClearPad(GPIOE, 11);
-  palSetPad(GPIOE, 10);
+static void set_phase_b_ticks(uint16_t ticks) {
+  pwmEnableChannel(&PWMD1, 1, ticks);
+  pwmSetPad(GPIOE, 10);
 }
 
 static void disconnect_phase_b(void) {
-  palClearPad(GPIOE, 11);
-  palClearPad(GPIOE, 10);
+  pwmClearPad(GPIOE, 10);
+  pwmDisableChannel(&PWMD1, 1);
 }
 
-static void set_phase_c_high(void) {
-  palSetPad(GPIOE, 9);
-  palClearPad(GPIOE, 8);
-}
-
-static void set_phase_c_low(void) {
-  palClearPad(GPIOE, 9);
-  palSetPad(GPIOE, 8);
+static void set_phase_c_ticks(uint16_t ticks) {
+  pwmEnableChannel(&PWMD1, 0, ticks);
+  pwmSetPad(GPIOE, 12);
 }
 
 static void disconnect_phase_c(void) {
-  palClearPad(GPIOE, 9);
-  palClearPad(GPIOE, 8);
+  pwmClearPad(GPIOE, 12);
+  pwmDisableChannel(&PWMD1, 0);
 }
 
-// shitty PWM implementation to compensate for bad wiring
-static uint8_t pwm_counter = 0;
-
-//void motor_update_routine(void) {
-//  if (motor_pwm_period_ticks < 10) {
-//    disconnect_phase_a();
-//    disconnect_phase_b();
-//    disconnect_phase_c();
-//    return;
-//  }
-//
-//  if (pwm_counter >= 100) {
-//    pwm_counter = 0;
-//  } else {
-//    ++pwm_counter;
-//  }
-//
-//  if (pwm_counter < motor_pwm_period_ticks) {
-//    disconnect_phase_a();
-//    disconnect_phase_b();
-//    disconnect_phase_c();
-//    return;
-//  }
-//
-//  // commutation
-//  bool phase_a_high = palReadPad(GPIOD, 0) == PAL_HIGH;
-//  bool phase_b_high = palReadPad(GPIOD, 1) == PAL_HIGH;
-//  bool phase_c_high = palReadPad(GPIOD, 2) == PAL_HIGH;
-//
-//  if (!phase_a_high && phase_b_high && phase_c_high) {
-//    set_phase_a_high();
-//    disconnect_phase_b();
-//    set_phase_c_low();
-//  } else if (!phase_a_high && phase_b_high && phase_c_high) {
-//    disconnect_phase_a();
-//    set_phase_b_high();
-//    set_phase_c_low();
-//  } else if (!phase_a_high && !phase_b_high && phase_c_high) {
-//    set_phase_a_low();
-//    set_phase_b_high();
-//    disconnect_phase_c();
-//  } else if (phase_a_high && !phase_b_high && phase_c_high) {
-//    set_phase_a_low();
-//    disconnect_phase_b();
-//    set_phase_c_high();
-//  } else if (phase_a_high && !phase_b_high && !phase_c_high) {
-//    disconnect_phase_a();
-//    set_phase_b_low();
-//    set_phase_c_high();
-//  } else if (phase_a_high && phase_b_high && !phase_c_high) {
-//    set_phase_a_high();
-//    set_phase_b_low();
-//    disconnect_phase_c();
-//  } else {
-//    // this shouldn't happen
-//    disconnect_phase_a();
-//    disconnect_phase_b();
-//    disconnect_phase_c();
-//  }
-//}
-
 void motor_update_routine(void) {
-  set_phase_a_high();
-  set_phase_b_low();
-  set_phase_c_low();
-  return;
-
-  const int pwm_cycles_per_state = 10;
-  const int updates_per_cycle = 100;
-  const int updates_per_state = pwm_cycles_per_state * updates_per_cycle;
-  if (pwm_counter >= 6*updates_per_state) {
-    pwm_counter = 0;
-  } else {
-    ++pwm_counter;
-  }
-
-  if ((pwm_counter % 100) > motor_pwm_period_ticks) {
-    disconnect_phase_a();
-    disconnect_phase_b();
-    disconnect_phase_c();
-    return;
-  }
-
-  // commutation
-  switch ((int)(pwm_counter / updates_per_state)) {
-  case 0:
-    set_phase_a_high();
-    disconnect_phase_b();
-    set_phase_c_low();
-    break;
-  case 1:
-    disconnect_phase_a();
-    set_phase_b_high();
-    set_phase_c_low();
-    break;
-  case 2:
-    set_phase_a_low();
-    set_phase_b_high();
-    disconnect_phase_c();
-    break;
-  case 3:
-    set_phase_a_low();
-    disconnect_phase_b();
-    set_phase_c_high();
-    break;
-  case 4:
-    disconnect_phase_a();
-    set_phase_b_low();
-    set_phase_c_high();
-    break;
-  case 5:
-    set_phase_a_high();
-    set_phase_b_low();
-    disconnect_phase_c();
-    break;
-  default:
-    // this shouldn't happen
-    pwm_counter = 0;
-    disconnect_phase_a();
-    disconnect_phase_b();
-    disconnect_phase_c();
-    break;
-  }
+  // TODO
 }
