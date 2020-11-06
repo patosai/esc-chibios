@@ -159,35 +159,35 @@ void motor_set_power_percentage(float power_percentage) {
 //  pwmEnableChannel(&PWMD1, 2, (pwmcnt_t)(v_phase_3/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
 //}
 
-static void set_phase_a_ticks(uint16_t ticks) {
-  pwmEnableChannel(&PWMD1, 2, ticks);
-  pwmSetPad(GPIOE, 8);
-}
-
-static void disconnect_phase_a(void) {
-  pwmClearPad(GPIOE, 8);
-  pwmDisableChannel(&PWMD1, 2);
-}
-
-static void set_phase_b_ticks(uint16_t ticks) {
-  pwmEnableChannel(&PWMD1, 1, ticks);
-  pwmSetPad(GPIOE, 10);
-}
-
-static void disconnect_phase_b(void) {
-  pwmClearPad(GPIOE, 10);
-  pwmDisableChannel(&PWMD1, 1);
-}
-
-static void set_phase_c_ticks(uint16_t ticks) {
-  pwmEnableChannel(&PWMD1, 0, ticks);
-  pwmSetPad(GPIOE, 12);
-}
-
-static void disconnect_phase_c(void) {
-  pwmClearPad(GPIOE, 12);
-  pwmDisableChannel(&PWMD1, 0);
-}
+//static void set_phase_a_ticks(uint16_t ticks) {
+//  pwmEnableChannel(&PWMD1, 2, ticks);
+//  palSetPad(GPIOE, 8);
+//}
+//
+//static void disconnect_phase_a(void) {
+//  palClearPad(GPIOE, 8);
+//  pwmDisableChannel(&PWMD1, 2);
+//}
+//
+//static void set_phase_b_ticks(uint16_t ticks) {
+//  pwmEnableChannel(&PWMD1, 1, ticks);
+//  palSetPad(GPIOE, 10);
+//}
+//
+//static void disconnect_phase_b(void) {
+//  palClearPad(GPIOE, 10);
+//  pwmDisableChannel(&PWMD1, 1);
+//}
+//
+//static void set_phase_c_ticks(uint16_t ticks) {
+//  pwmEnableChannel(&PWMD1, 0, ticks);
+//  palSetPad(GPIOE, 12);
+//}
+//
+//static void disconnect_phase_c(void) {
+//  palClearPad(GPIOE, 12);
+//  pwmDisableChannel(&PWMD1, 0);
+//}
 
 void motor_update_routine(void) {
   // TODO

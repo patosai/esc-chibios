@@ -9,16 +9,4 @@ void led_2_turn_on(void);
 void led_2_toggle(void);
 void led_2_turn_off(void);
 
-void led_3_turn_on(void);
-void led_3_toggle(void);
-void led_3_turn_off(void);
-
-void led_4_turn_on(void);
-void led_4_toggle(void);
-void led_4_turn_off(void);
-
-void led_5_turn_on(void);
-void led_5_toggle(void);
-void led_5_turn_off(void);
-
 #endif

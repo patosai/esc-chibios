@@ -80,13 +80,13 @@ int main(void) {
   while (true) {
     led_1_toggle();
     if (drv8353rs_has_fault()) {
-      led_3_turn_on();
+      led_2_turn_on();
       log_println("DRV8353RS error, Fault 1: 0x%x, Fault 2: 0x%x",
         drv8353rs_read_register(FAULT_STATUS_1),
         drv8353rs_read_register(FAULT_STATUS_2)
       );
     } else {
-      led_3_turn_off();
+      led_2_turn_off();
     }
     chThdSleepMilliseconds(1000);
 
