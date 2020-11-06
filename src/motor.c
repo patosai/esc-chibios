@@ -59,8 +59,8 @@
 
  */
 
-#define PWM_FREQUENCY_HZ 70000
-#define PWM_PERIOD_TICKS_MAX 128
+#define PWM_FREQUENCY_HZ 84000
+#define PWM_PERIOD_TICKS_MAX 100
 #define SQRT_3_OVER_2 sqrt(3)/2.0
 
 static pid_state_t pid_direct;
