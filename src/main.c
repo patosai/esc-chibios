@@ -24,13 +24,13 @@
 #include "led.h"
 #include "log.h"
 
-static THD_WORKING_AREA(waThreadLedBlinker, 128);
-static THD_FUNCTION(ThreadLedBlinker, arg) {
+static THD_WORKING_AREA(waThreadLogger, 128);
+static THD_FUNCTION(ThreadLogger, arg) {
   (void)arg;
-  chRegSetThreadName("led_blinker");
+  chRegSetThreadName("logger");
   while (true) {
-    led_2_toggle();
-    chThdSleepMilliseconds(500);
+    log_println("ADC temp %.1fC, Vref %.2fV", adc_temp_celsius(), adc_vref());
+    chThdSleepMilliseconds(1000);
   }
 }
 
@@ -52,7 +52,7 @@ static void init(void) {
 }
 
 static void create_threads(void) {
-  chThdCreateStatic(waThreadLedBlinker, sizeof(waThreadLedBlinker), LOWPRIO, ThreadLedBlinker, NULL);
+  chThdCreateStatic(waThreadLogger, sizeof(waThreadLogger), LOWPRIO, ThreadLogger, NULL);
 }
 
 static void gpt3_callback(GPTDriver *driver) {
@@ -78,7 +78,6 @@ int main(void) {
   motor_set_power_percentage(0);
 
   while (true) {
-    led_1_toggle();
     if (drv8353rs_has_fault()) {
       led_2_turn_on();
       log_println("DRV8353RS error, Fault 1: 0x%x, Fault 2: 0x%x",
@@ -88,8 +87,7 @@ int main(void) {
     } else {
       led_2_turn_off();
     }
+    led_1_toggle();
     chThdSleepMilliseconds(1000);
-
-    log_println("ADC temp %.1fC, Vref %.2fV", adc_temp_celsius(), adc_vref());
   }
 }
