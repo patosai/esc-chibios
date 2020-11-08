@@ -74,7 +74,7 @@ void drv8353rs_init(void) {
   uint16_t tx_driver_control = 0 << 10 // associated half bridge shutdown in response to overcurrent
       | 0 << 9 // undervoltage lockout fault enabled
       | 1 << 7 // thermal warning reported on nFAULT and FAULT bit
-      | 0 << 5 // 6x PWM mode - low and high on each MOSFET controlled separately
+      | 1 << 5 // 3x PWM mode - low controls Hi-Z, high side controls on/off when low side pin is high
       | 0 << 4 // 1x PWM mode uses synchronous rectification, doesn't apply since not using 1x PWM mode
       | 0 << 3 // in 1x PWM, this bit is ORed with INHC (DIR) input, doesn't apply since not using 1x PWM mode
       | 0 << 2 // don't coast the motor
@@ -86,10 +86,11 @@ void drv8353rs_init(void) {
   // IRFS7530 has a gate-to-drain capacitance of 73nC
   // let's say a dog can hear a max frequency of 70kHz
   // PWM will run above 70kHz so the dog doesn't hear it as much
-  // 1 period = 14.28us
-  // 5% of time rising + 5% of time falling = 714ns
+  // APB2 runs at 84MHz and needs to be exact multiple of PWM freq, so make PWM freq 84kHz
+  // 1 period = 11.9us
+  // 5% of time rising/5% of time falling = 595ns
   // I = Q/t
-  // minimum drive current = 73nC/714ns = 102mA
+  // minimum drive current = 73nC/595ns = 122mA
   // make it 150mA to be safe.
   uint16_t tx_gate_drive_high = 0b000 << 8 // don't lock settings just yet
       | 0b0011 << 4 // high side rise drive current = 150mA
