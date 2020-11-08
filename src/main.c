@@ -24,12 +24,12 @@
 #include "led.h"
 #include "log.h"
 
-static THD_WORKING_AREA(waThreadLogger, 128);
-static THD_FUNCTION(ThreadLogger, arg) {
+static THD_WORKING_AREA(waLedBlinker, 128);
+static THD_FUNCTION(LedBlinker, arg) {
   (void)arg;
-  chRegSetThreadName("logger");
+  chRegSetThreadName("led blinker");
   while (true) {
-    log_println("ADC temp %.1fC, Vref %.2fV", adc_temp_celsius(), adc_vref());
+    led_1_toggle();
     chThdSleepMilliseconds(1000);
   }
 }
@@ -52,7 +52,7 @@ static void init(void) {
 }
 
 static void create_threads(void) {
-  chThdCreateStatic(waThreadLogger, sizeof(waThreadLogger), LOWPRIO, ThreadLogger, NULL);
+  chThdCreateStatic(waLedBlinker, sizeof(waLedBlinker), LOWPRIO, LedBlinker, NULL);
 }
 
 static void gpt3_callback(GPTDriver *driver) {
@@ -87,7 +87,7 @@ int main(void) {
     } else {
       led_2_turn_off();
     }
-    led_1_toggle();
+    log_println("ADC temp %.1fC, Vref %.2fV", adc_temp_celsius(), adc_vref());
     chThdSleepMilliseconds(1000);
   }
 }
