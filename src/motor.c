@@ -6,6 +6,7 @@
 #include "constants.h"
 #include "drv8353rs.h"
 #include "line.h"
+#include "log.h"
 #include "motor.h"
 #include "pid.h"
 
@@ -126,8 +127,28 @@ void motor_set_power_percentage(float power_percentage) {
   motor_pwm_period_ticks = ticks;
 }
 
-static float get_rotor_flux_direction_radians(void) {
-  return 0;
+static uint8_t get_rotor_commutation_state(void) {
+  bool a_high = palReadLine(LINE_HALL_SENSOR_A) == PAL_HIGH;
+  bool b_high = palReadLine(LINE_HALL_SENSOR_B) == PAL_HIGH;
+  bool c_high = palReadLine(LINE_HALL_SENSOR_C) == PAL_HIGH;
+  uint8_t result = a_high << 2 & b_high << 1 & c_high;
+  switch (result) {
+  case 0b100:
+    return 0;
+  case 0b110:
+    return 1;
+  case 0b010:
+    return 2;
+  case 0b011:
+    return 3;
+  case 0b001:
+    return 4;
+  case 0b101:
+    return 5;
+  default:
+    log_println_in_interrupt("Unknown commutation result 0x%x", result);
+    return 0;
+  }
 }
 
 //
@@ -193,5 +214,5 @@ static float get_rotor_flux_direction_radians(void) {
 
 void motor_update_routine(void) {
   // TODO
-  get_rotor_flux_direction_radians();
+  get_rotor_commutation_state();
 }
