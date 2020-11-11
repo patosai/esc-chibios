@@ -1,5 +1,6 @@
 #include "constants.h"
 #include "drv8353rs.h"
+#include "line.h"
 #include "spi.h"
 
 static const uint16_t bottom_11_bit_mask = (((uint16_t)1 << 11) - 1); // generates 0000011111111111
@@ -20,15 +21,15 @@ static void write_spi2(drv8353rs_register_t addr, uint16_t data) {
 }
 
 static void enable_drv8353rs(void) {
-  palSetPadMode(GPIOB, 11, PAL_MODE_OUTPUT_PUSHPULL);
-  palClearPad(GPIOB, 11);
+  palSetLineMode(LINE_DRV8353RS_ENABLE, PAL_MODE_OUTPUT_PUSHPULL);
+  palClearLine(LINE_DRV8353RS_ENABLE);
   const uint8_t max_necessary_reset_pulse_time_us = 40;
   chThdSleepMicroseconds(max_necessary_reset_pulse_time_us);
-  palSetPad(GPIOB, 11);
+  palSetLine(LINE_DRV8353RS_ENABLE);
 }
 
 static void setup_nfault_pin(void) {
-  palSetPadMode(GPIOB, 10, PAL_MODE_INPUT_PULLUP);
+  palSetLineMode(LINE_DRV8353RS_NFAULT, PAL_MODE_INPUT_PULLUP);
 }
 
 static void lock_drv_spi(void) {
@@ -170,7 +171,7 @@ void drv8353rs_manually_calibrate(void) {
 }
 
 bool drv8353rs_has_fault(void) {
-  return palReadPad(GPIOB, 10) == PAL_LOW;
+  return palReadLine(LINE_DRV8353RS_NFAULT) == PAL_LOW;
 }
 
 uint16_t drv8353rs_read_register(drv8353rs_register_t reg) {

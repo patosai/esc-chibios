@@ -5,6 +5,7 @@
 #include "adc.h"
 #include "constants.h"
 #include "led.h"
+#include "line.h"
 #include "log.h"
 #include "serial.h"
 
@@ -114,11 +115,10 @@ static const ADCConversionGroup adc3_config = {
 };
 
 static void setup_pin_modes(void) {
-  palSetPadMode(GPIOA, 6, PAL_MODE_INPUT_ANALOG); // throttle input
-
-  palSetPadMode(GPIOC, 1, PAL_MODE_INPUT_ANALOG); // DRV SOA
-  palSetPadMode(GPIOC, 2, PAL_MODE_INPUT_ANALOG); // DRV SOC
-  palSetPadMode(GPIOC, 3, PAL_MODE_INPUT_ANALOG); // DRV SOB
+  palSetLineMode(LINE_THROTTLE_INPUT, PAL_MODE_INPUT_ANALOG);
+  palSetLineMode(LINE_PHASE_A_VSENSE, PAL_MODE_INPUT_ANALOG);
+  palSetLineMode(LINE_PHASE_B_VSENSE, PAL_MODE_INPUT_ANALOG);
+  palSetLineMode(LINE_PHASE_C_VSENSE, PAL_MODE_INPUT_ANALOG);
 }
 
 static void start_all_adcs(void) {
