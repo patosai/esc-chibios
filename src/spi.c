@@ -1,6 +1,7 @@
 #include <ch.h>
 #include <hal.h>
 
+#include "line.h"
 #include "spi.h"
 
 static SPIConfig *config;
@@ -21,19 +22,17 @@ void spi2_init(uint16_t cr1, uint16_t cr2) {
   config->cr2 = cr2;
   spiStart(&SPID2, config);
 
-  palSetPadMode(GPIOB, 12, PAL_MODE_ALTERNATE(5)); // NSS
-  palSetPadMode(GPIOB, 13, PAL_MODE_ALTERNATE(5)); // SCLK
-  palSetPadMode(GPIOB, 14, PAL_MODE_ALTERNATE(5)); // MISO
-  palSetPadMode(GPIOB, 15, PAL_MODE_ALTERNATE(5)); // MOSI
+  palSetLineMode(LINE_SPI_NSS, PAL_MODE_ALTERNATE(5));
+  palSetLineMode(LINE_SPI_SCLK, PAL_MODE_ALTERNATE(5));
+  palSetLineMode(LINE_SPI_MISO, PAL_MODE_ALTERNATE(5));
+  palSetLineMode(LINE_SPI_MOSI, PAL_MODE_ALTERNATE(5));
 }
 
 uint16_t spi2_exchange_word(uint16_t tx) {
   SPI2_TRANSMIT_BUFFER[0] = tx;
 
   spiSelect(&SPID2);
-  palClearPad(GPIOB, 12);
   spiExchange(&SPID2, 1, SPI2_TRANSMIT_BUFFER, SPI2_RECEIVE_BUFFER);
-  palSetPad(GPIOB, 12);
   spiUnselect(&SPID2);
 
   return SPI2_RECEIVE_BUFFER[0];

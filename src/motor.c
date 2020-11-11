@@ -5,6 +5,7 @@
 #include "adc.h"
 #include "constants.h"
 #include "drv8353rs.h"
+#include "line.h"
 #include "motor.h"
 #include "pid.h"
 
@@ -87,22 +88,22 @@ static void setup_pwm(void) {
     pwmEnableChannel(&PWMD1, channel, 0);
   }
 
-  palSetPadMode(GPIOE, 8, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOE, 9, PAL_MODE_ALTERNATE(1));
-  palSetPadMode(GPIOE, 10, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOE, 11, PAL_MODE_ALTERNATE(1));
-  palSetPadMode(GPIOE, 12, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetPadMode(GPIOE, 13, PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_PWM_A, PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_PWM_A_COMP, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetLineMode(LINE_PWM_B, PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_PWM_B_COMP, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetLineMode(LINE_PWM_C, PAL_MODE_ALTERNATE(1));
+  palSetLineMode(LINE_PWM_C_COMP, PAL_MODE_OUTPUT_PUSHPULL);
 
-  palClearPad(GPIOE, 9);
-  palClearPad(GPIOE, 11);
-  palClearPad(GPIOE, 13);
+  palClearLine(LINE_PWM_A_COMP);
+  palClearLine(LINE_PWM_B_COMP);
+  palClearLine(LINE_PWM_C_COMP);
 }
 
 static void setup_hall_sensors(void) {
-  palSetPadMode(GPIOA, 1, PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOA, 2, PAL_MODE_INPUT_PULLUP);
-  palSetPadMode(GPIOA, 3, PAL_MODE_INPUT_PULLUP);
+  palSetLineMode(LINE_HALL_SENSOR_A, PAL_MODE_INPUT_PULLUP);
+  palSetLineMode(LINE_HALL_SENSOR_B, PAL_MODE_INPUT_PULLUP);
+  palSetLineMode(LINE_HALL_SENSOR_C, PAL_MODE_INPUT_PULLUP);
 }
 
 void motor_init(void) {
@@ -125,9 +126,10 @@ void motor_set_power_percentage(float power_percentage) {
   motor_pwm_period_ticks = ticks;
 }
 
-//static float get_rotor_flux_direction_radians(void) {
-//  // TODO
-//}
+static float get_rotor_flux_direction_radians(void) {
+  return 0;
+}
+
 //
 // TODO reenable FOC on V1.1 esc
 //void motor_update_routine(void) {
@@ -191,4 +193,5 @@ void motor_set_power_percentage(float power_percentage) {
 
 void motor_update_routine(void) {
   // TODO
+  get_rotor_flux_direction_radians();
 }

@@ -1,6 +1,7 @@
 #include <ch.h>
 #include <hal.h>
 
+#include "line.h"
 #include "serial.h"
 #include "util.h"
 
@@ -18,10 +19,10 @@ static SerialConfig config = {
 
 void serial1_init(void) {
   sdStart(&SD1, &config);
-  palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7)); // TX
-  palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7)); // RX
-  palSetPadMode(GPIOA, 11, PAL_MODE_ALTERNATE(7)); // CTS
-  palSetPadMode(GPIOA, 12, PAL_MODE_ALTERNATE(7)); // RTS
+  palSetLineMode(LINE_SERIAL_TX, PAL_MODE_ALTERNATE(7));
+  palSetLineMode(LINE_SERIAL_RX, PAL_MODE_ALTERNATE(7));
+  palSetLineMode(LINE_SERIAL_CTS, PAL_MODE_ALTERNATE(7));
+  palSetLineMode(LINE_SERIAL_RTS, PAL_MODE_ALTERNATE(7));
 }
 
 int serial1_send(const char *fmt, ...) {
