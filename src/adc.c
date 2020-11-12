@@ -221,7 +221,8 @@ void adc_retrieve_phase_currents(float* buf) {
   // formula for converting ADC voltage to current
   // DRV takes -0.15 to 0.15V, amplifies it 20x (changeable via setting), and outputs 0 to 3.3V
   const float reference = 3.3/2.0;
-  buf[0] = (reference - buf[0])/(DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS);
-  buf[1] = (reference - buf[1])/(DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS);
-  buf[2] = (reference - buf[2])/(DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS);
+  const float voltage_factor = DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS;
+  buf[0] = (reference - buf[0])/voltage_factor;
+  buf[1] = (reference - buf[1])/voltage_factor;
+  buf[2] = (reference - buf[2])/voltage_factor;
 }
