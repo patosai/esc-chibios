@@ -137,7 +137,7 @@ void drv8353rs_init(void) {
       break;
   }
   uint16_t tx_current_sense_control = 0 << 10 // sense amplifier positive is SPx
-      | 0 << 9 // sense amplifier reference voltage is VREF
+      | 1 << 9 // sense amplifier reference voltage is VREF/2 (bidirectional current sense)
       | 0 << 8 // overcurrent for low side MOSFET is measured from SHx to SPx
       | (current_sense_amplification & 0b11) << 6
       | 0 << 5 // sense overcurrent fault enabled
