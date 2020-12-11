@@ -17,6 +17,7 @@ static uint16_t read_spi2(drv8353rs_register_t addr) {
 static void write_spi2(drv8353rs_register_t addr, uint16_t data) {
   addr &= bottom_4_bit_mask;
   data &= bottom_11_bit_mask;
+  chThdSleepMicroseconds(1); // ensure nSCS 400ns minimum high time
   spi2_exchange_word((0 << 15) | (addr << 11) | data);
 }
 
@@ -64,9 +65,10 @@ void drv8353rs_init(void) {
   //  ->> CPHA = 1
   uint16_t cr1 =
       SPI_CR1_MSTR
-      | SPI_CR1_CPHA // first data capture on second edge
+      // no CPOL - idle clock is low
+      | SPI_CR1_CPHA // data captured/propagated on second edge
       | SPI_CR1_DFF // 16-bit frame
-      | SPI_CR1_BR_1 | SPI_CR1_BR_0 // SPI2 is on APB1, which is running at 21MHz according to mcuconf.h, set SPI clock to APB1/16 = 1.3125MHz
+      | SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BR_0 // SPI2 is on APB1, which is running at 21MHz according to mcuconf.h, set SPI clock to APB1/256 = 82kHz
       ;
   uint16_t cr2 = 0;
 

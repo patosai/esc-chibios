@@ -29,7 +29,7 @@ static THD_FUNCTION(LedBlinker, arg) {
   (void)arg;
   chRegSetThreadName("led blinker");
   while (true) {
-    led_1_toggle();
+//    led_1_toggle();
     chThdSleepMilliseconds(1000);
   }
 }
@@ -77,17 +77,29 @@ int main(void) {
   chThdSleepMilliseconds(2000);
   motor_set_power_percentage(0);
 
+  float adc_currents[3];
+
   while (true) {
     if (drv8353rs_has_fault()) {
       led_2_turn_on();
-      log_println("DRV8353RS error, Fault 1: 0x%x, Fault 2: 0x%x",
+      log_println("ERROR DRV8353RS Fault 1: 0x%x, Fault 2: 0x%x",
         drv8353rs_read_register(FAULT_STATUS_1),
         drv8353rs_read_register(FAULT_STATUS_2)
       );
     } else {
       led_2_turn_off();
     }
-    log_println("ADC temp %.1fC, Vref %.2fV", adc_temp_celsius(), adc_vref());
+    adc_retrieve_phase_currents(adc_currents);
+    log_println("DRV8353RS gate drive high: 0x%x",
+      drv8353rs_read_register(GATE_DRIVE_HIGH_CONTROL)
+    );
+    log_println("ADC temp %.1fC, Vref %.2fV, phase 1 %.2fA, phase 2 %.2fA, phase 3 %.2fA",
+      adc_temp_celsius(),
+      adc_vref(),
+      adc_currents[0],
+      adc_currents[1],
+      adc_currents[2]
+    );
     chThdSleepMilliseconds(1000);
   }
 }

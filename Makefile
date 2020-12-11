@@ -192,14 +192,3 @@ gdb-server:
 
 gdb: all
 	gdb-multiarch -ex "file build/$(PROJECT).elf" -ex "target extended-remote :4242"
-
-discovery:
-	$(MAKE) all USE_COPT='-DDISCOVERY'
-
-discovery-flash: discovery
-	st-flash --format ihex write build/$(PROJECT).hex
-
-
-#
-# Custom rules
-##############################################################################

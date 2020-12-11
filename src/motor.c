@@ -127,37 +127,37 @@ void motor_set_power_percentage(float power_percentage) {
   motor_pwm_period_ticks = ticks;
 }
 
-static uint8_t last_commutation_result = 0;
-static uint8_t get_rotor_commutation_state(void) {
-  bool a_high = palReadLine(LINE_HALL_SENSOR_A) == PAL_HIGH;
-  bool b_high = palReadLine(LINE_HALL_SENSOR_B) == PAL_HIGH;
-  bool c_high = palReadLine(LINE_HALL_SENSOR_C) == PAL_HIGH;
-  uint8_t result = a_high << 2 & b_high << 1 & c_high;
-  switch (result) {
-  case 0b100:
-    last_commutation_result = 0;
-    break;
-  case 0b110:
-    last_commutation_result = 1;
-    break;
-  case 0b010:
-    last_commutation_result = 2;
-    break;
-  case 0b011:
-    last_commutation_result = 3;
-    break;
-  case 0b001:
-    last_commutation_result = 4;
-    break;
-  case 0b101:
-    last_commutation_result = 5;
-    break;
-  default:
-    log_println_in_interrupt("Unknown commutation result 0x%x", result);
-    break;
-  }
-  return last_commutation_result;
-}
+//static uint8_t last_commutation_result = 0;
+//static uint8_t get_rotor_commutation_state(void) {
+//  bool a_high = palReadLine(LINE_HALL_SENSOR_A) == PAL_HIGH;
+//  bool b_high = palReadLine(LINE_HALL_SENSOR_B) == PAL_HIGH;
+//  bool c_high = palReadLine(LINE_HALL_SENSOR_C) == PAL_HIGH;
+//  uint8_t result = a_high << 2 & b_high << 1 & c_high;
+//  switch (result) {
+//  case 0b100:
+//    last_commutation_result = 0;
+//    break;
+//  case 0b110:
+//    last_commutation_result = 1;
+//    break;
+//  case 0b010:
+//    last_commutation_result = 2;
+//    break;
+//  case 0b011:
+//    last_commutation_result = 3;
+//    break;
+//  case 0b001:
+//    last_commutation_result = 4;
+//    break;
+//  case 0b101:
+//    last_commutation_result = 5;
+//    break;
+//  default:
+//    log_println_in_interrupt("Unknown commutation result 0x%x", result);
+//    break;
+//  }
+//  return last_commutation_result;
+//}
 
 //
 // TODO reenable FOC on V1.1 esc
@@ -222,5 +222,5 @@ static uint8_t get_rotor_commutation_state(void) {
 
 void motor_update_routine(void) {
   // TODO
-  get_rotor_commutation_state();
+  //get_rotor_commutation_state();
 }
