@@ -49,7 +49,7 @@
 #define STM32_PLLP_VALUE                    4    // N divider for SYSCLK - 84MHz
 #define STM32_PLLQ_VALUE                    7    // N divider for USB - 48MHz
 #define STM32_HPRE                          STM32_HPRE_DIV1 // AHB prescalar - 84MHz
-#define STM32_PPRE1                         STM32_PPRE1_DIV8 // APB1 prescalar - 21MHz - max 42MHz
+#define STM32_PPRE1                         STM32_PPRE1_DIV8 // APB1 prescalar - 10.5MHz - max 42MHz
 #define STM32_PPRE2                         STM32_PPRE2_DIV2 // APB2 prescalar - 42MHz - max 84MHz
 #define STM32_RTCSEL                        STM32_RTCSEL_LSI
 #define STM32_RTCPRE_VALUE                  (STM32_HSECLK / 1000000U) // clock supplied to the RTC is 1 MHz

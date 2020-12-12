@@ -68,7 +68,7 @@ void drv8353rs_init(void) {
       // no CPOL - idle clock is low
       | SPI_CR1_CPHA // data captured/propagated on second edge
       | SPI_CR1_DFF // 16-bit frame
-      | SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BR_0 // SPI2 is on APB1, which is running at 21MHz according to mcuconf.h, set SPI clock to APB1/256 = 82kHz
+      | SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BR_0 // SPI2 is on APB1, which is running at 10.5MHz according to mcuconf.h, set SPI clock to APB1/256 = 41kHz
       ;
   uint16_t cr2 = 0;
 
