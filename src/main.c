@@ -22,17 +22,8 @@
 #include "drv8353rs.h"
 #include "motor.h"
 #include "led.h"
+#include "line.h"
 #include "log.h"
-
-static THD_WORKING_AREA(waLedBlinker, 128);
-static THD_FUNCTION(LedBlinker, arg) {
-  (void)arg;
-  chRegSetThreadName("led blinker");
-  while (true) {
-//    led_1_toggle();
-    chThdSleepMilliseconds(1000);
-  }
-}
 
 static void init(void) {
   /*
@@ -51,10 +42,6 @@ static void init(void) {
   log_println("Initialized");
 }
 
-static void create_threads(void) {
-  chThdCreateStatic(waLedBlinker, sizeof(waLedBlinker), LOWPRIO, LedBlinker, NULL);
-}
-
 static void gpt3_callback(GPTDriver *driver) {
   (void)driver;
   motor_update_routine();
@@ -67,7 +54,6 @@ static GPTConfig gpt3cfg = {
 
 int main(void) {
   init();
-  create_threads();
 
   adc_start_continuous_conversion();
 

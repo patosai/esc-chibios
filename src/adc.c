@@ -15,7 +15,7 @@
 
 // samples_saved must be 1 or an even number
 #define ADC_SAMPLES_SAVED_PER_CHANNEL 1
-#define ADC1_CHANNELS 3
+#define ADC1_CHANNELS 2
 #define ADC2_CHANNELS 2
 #define ADC3_CHANNELS 1
 
@@ -29,7 +29,7 @@
 static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
 static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
-static adcsample_t buffered_current_sense_voltages[3];
+static adcsample_t buffered_current_sense_voltages[2]; // stores only phase B and C
 
 static uint8_t adcdriver_to_num(ADCDriver* adc) {
   if (adc->adc == ADC1) {
@@ -48,9 +48,8 @@ static void all_adcs_converted_callback(ADCDriver* adc) {
   // should only be enabled on one of the ADCs, otherwise it will be called multiple times
   (void)adc;
   chSysLockFromISR();
-  buffered_current_sense_voltages[0] = -adc2_samples[0] - adc3_samples[0];
-  buffered_current_sense_voltages[1] = adc2_samples[0];
-  buffered_current_sense_voltages[2] = adc3_samples[0];
+  buffered_current_sense_voltages[0] = adc2_samples[0];
+  buffered_current_sense_voltages[1] = adc3_samples[0];
   chSysUnlockFromISR();
 }
 
@@ -58,7 +57,7 @@ static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
   log_println_in_interrupt("ADC %d error %d", adcdriver_to_num(adc), err);
 }
 
-// ADC 1 samples PA0 (throttle switch sense), VREF, and temp
+// ADC 1 samples VREF, and temp
 static const ADCConversionGroup adc1_config = {
   // circular buffer needs to be enabled for ADC triggering to work
   .circular = TRUE,
@@ -74,13 +73,13 @@ static const ADCConversionGroup adc1_config = {
          | ADC_CR2_EXTSEL_SRC(6), // trigger on TIM2_TRGO
   // ADCCLK operates at APB2/4 = 42MHz/4 = 10.5MHz
   // Temp and Vref need a min. sampling time of 10us = 105 cycles needed
-  // smallest # cycles bigger than 105 is 144
   // at 3.5kHz trigger, with the clock at 10.5MHz, ADC has 3000 cycles to do one conversion sequence
-  .smpr1 = ADC_SMPR2_SMP_AN0(ADC_SAMPLE_144) | ADC_SMPR1_SMP_VREF(ADC_SAMPLE_144) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_144),
+  // so sample the max - 480 cycles
+  .smpr1 = ADC_SMPR1_SMP_VREF(ADC_SAMPLE_480) | ADC_SMPR1_SMP_SENSOR(ADC_SAMPLE_480),
   .smpr2 = 0,
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN0) | ADC_SQR3_SQ2_N(ADC_CHANNEL_VREFINT) | ADC_SQR3_SQ3_N(ADC_CHANNEL_SENSOR),
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_VREFINT) | ADC_SQR3_SQ2_N(ADC_CHANNEL_SENSOR),
 };
 
 // ADC 2 samples PC3 (phase B voltage) and PA6 (throttle)
@@ -93,8 +92,8 @@ static const ADCConversionGroup adc2_config = {
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
          | ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
-  .smpr1 = ADC_SMPR1_SMP_AN13(ADC_SAMPLE_144),
-  .smpr2 = ADC_SMPR2_SMP_AN6(ADC_SAMPLE_144),
+  .smpr1 = ADC_SMPR1_SMP_AN13(ADC_SAMPLE_480),
+  .smpr2 = ADC_SMPR2_SMP_AN6(ADC_SAMPLE_480),
   .sqr1 = 0,
   .sqr2 = 0,
   .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN13) | ADC_SQR3_SQ2_N(ADC_CHANNEL_IN6),
@@ -110,11 +109,11 @@ static const ADCConversionGroup adc3_config = {
   .cr2 = ADC_CR2_ADON
          | ADC_CR2_DMA
          | ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
-  .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_144),
+  .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_480),
   .smpr2 = 0,
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ2_N(ADC_CHANNEL_IN12),
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12),
 };
 
 static void setup_pin_modes(void) {
@@ -187,7 +186,7 @@ float adc_temp_celsius(void) {
   // constant values from F407VG datasheet
   const float V_25 = 0.76; // voltage at 25C
   const float average_slope = 0.0025; // 2.5mV/C
-  return (((adc1_samples[2] * ADC_VOLTAGE_FACTOR) - V_25) / average_slope) + 25;
+  return (((adc1_samples[1] * ADC_VOLTAGE_FACTOR) - V_25) / average_slope) + 25;
 }
 
 float adc_throttle_percentage(void) {
@@ -204,18 +203,16 @@ float adc_throttle_percentage(void) {
 }
 
 float adc_vref(void) {
-  return adc1_samples[1] * ADC_VOLTAGE_FACTOR;
+  return adc1_samples[0] * ADC_VOLTAGE_FACTOR;
 }
 
 void adc_retrieve_phase_currents(float* buf) {
   // disable interrupts to prevent DMA from updating samples in the middle of retrieval
   chSysLock();
-  buf[0] = buffered_current_sense_voltages[0];
-  buf[1] = buffered_current_sense_voltages[1];
-  buf[2] = buffered_current_sense_voltages[2];
+  buf[1] = buffered_current_sense_voltages[0];
+  buf[2] = buffered_current_sense_voltages[1];
   chSysUnlock();
 
-  buf[0] = buf[0] * ADC_VOLTAGE_FACTOR;
   buf[1] = buf[1] * ADC_VOLTAGE_FACTOR;
   buf[2] = buf[2] * ADC_VOLTAGE_FACTOR;
 
@@ -223,7 +220,7 @@ void adc_retrieve_phase_currents(float* buf) {
   // DRV takes -0.15 to 0.15V, amplifies it 20x (changeable via setting), and outputs 0 to 3.3V
   const float reference = 3.3/2.0;
   const float voltage_factor = DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS;
-  buf[0] = (reference - buf[0])/voltage_factor;
   buf[1] = (reference - buf[1])/voltage_factor;
   buf[2] = (reference - buf[2])/voltage_factor;
+  buf[0] = -(buf[1] + buf[2]);
 }

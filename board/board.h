@@ -406,7 +406,7 @@
                                      PIN_MODE_ALTERNATE(GPIOB_JTAG_TDO) |        \
                                      PIN_MODE_ALTERNATE(GPIOB_JTAG_NRST) |           \
                                      PIN_MODE_INPUT(GPIOB_PIN5) |           \
-                                     PIN_MODE_INPUT(GPIOB_PIN6) |        \
+                                     PIN_MODE_OUTPUT(GPIOB_PIN6) |        \
                                      PIN_MODE_INPUT(GPIOB_PIN7) |           \
                                      PIN_MODE_INPUT(GPIOB_PIN8) |           \
                                      PIN_MODE_INPUT(GPIOB_PIN9) |        \
