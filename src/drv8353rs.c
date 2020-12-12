@@ -86,40 +86,47 @@ void drv8353rs_init(void) {
       ;
   write_spi2(DRIVER_CONTROL, tx_driver_control);
 
-  // IRFS7530 has a gate-to-drain capacitance of 73nC
-  // let's say a dog can hear a max frequency of 70kHz
-  // PWM will run above 70kHz so the dog doesn't hear it as much
-  // APB2 runs at 84MHz and needs to be exact multiple of PWM freq, so make PWM freq 84kHz
-  // 1 period = 11.9us
-  // 5% of time rising/5% of time falling = 595ns
+  // IRFS7530 has total gate charge at VDS=48V and VGS=12V of ~285nC
+  // let's say a dog can hear a max frequency of 50kHz
+  // PWM will run at 50kHz so the dog doesn't hear it as much
+  // APB2 runs at 84MHz and needs to be exact multiple of PWM freq, so make PWM freq 50kHz
+  // 1 period = 20us
+  // every half period = 10us
+  // 5% of time rising/5% of time falling = 500ns
   // I = Q/t
-  // minimum drive current = 73nC/595ns = 122mA
-  // make it 150mA to be safe.
+  // minimum drive current = 285nC/500ns = 0.57A
+  // closest greater option is 600mA
   uint16_t tx_gate_drive_high = 0b000 << 8 // don't lock settings just yet
-      | 0b0011 << 4 // high side rise drive current = 150mA
-      | 0b0011 << 0 // high side fall drive current = 300mA
+      | 0b1001 << 4 // high side rise drive current = 600mA
+      | 0b0100 << 0 // high side fall drive current = 600mA
       ;
   write_spi2(GATE_DRIVE_HIGH_CONTROL, tx_gate_drive_high);
 
   uint16_t tx_gate_drive_low = 0 << 10 // when overcurrent is set to automatic retrying fault, fault is cleared after tRETRY
       | 0b10 << 8 // gate current drive time should be ~714ns, allow check to be 2000ns
-      | 0b0011 << 4 // low side rise drive current = 150mA
-      | 0b0011 << 0 // low side fall drive current = 300mA
+      | 0b1001 << 4 // high side rise drive current = 600mA
+      | 0b0100 << 0 // high side fall drive current = 600mA
       ;
   write_spi2(GATE_DRIVE_LOW_CONTROL, tx_gate_drive_low);
 
-  // sense resistor = 0.0005Ohm, 10W max dissipation
-  // P = I^2*R -> I^2 = P/R = 20,000, so max I = 141.42A
-  // voltage across the sense resistor is V = IR = 0.07V
+  // IRFS7530 max RDS = 2.4mOhm at 180C
+  // maximum estimated I = 40A
+  // voltage across the sense resistor is V = IR = 0.096V
   // set overcurrent voltage to 0.1V
   uint16_t tx_overcurrent_control = 0 << 10 // overcurrent time is 8ms
-      | 0b01 << 8 // dead time (time between switching of high and low MOSFET, prevents shoot-through)
+      | 0b01 << 8 // 100ns dead time (time between switching of high and low MOSFET, prevents shoot-through)
       | 0b01 << 6 // overcurrent causes an automatic retrying fault
       | 0b10 << 4 // overcurrent deglitch time (minimum time of overcurrent before detection) = 4us
-      | 0b1101 << 0 // VDS overcurrent voltage = 0.1V
+      | 0b0100 << 0 // VDS overcurrent voltage = 0.1V
       ;
   write_spi2(OVERCURRENT_CONTROL, tx_overcurrent_control);
 
+  // maximum estimated I = 40A
+  // maximum common mode input range is +-0.15V, so max resistor size is 0.15V/40A = 3.75mOhm, power dissipation = I^2R = 6W..
+  // targeting power dissipation = 0.5W, R = P/I^2 = 0.5/(40^2) = 0.3125mOhm, so make sense resistor 0.5mOhm
+  // max SPx-SNx = IR = 40*0.0005 = 0.02V
+  // SOx goes from 0.25 to Vref-0.25 = 3.3-0.25 = 3.05V, so 40V/V gain should be good
+  // SOx goes from (Vref/2)-(40*0.02) to (Vref/2)+(40*0.02) = 0.85V to 2.45V
   uint8_t current_sense_amplification = 0b00;
   switch (DRV_CURRENT_SENSE_AMPLIFICATION) {
     case 5:

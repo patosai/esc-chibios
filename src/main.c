@@ -55,6 +55,8 @@ static GPTConfig gpt3cfg = {
 int main(void) {
   init();
 
+  drv8353rs_manually_calibrate();
+
   adc_start_continuous_conversion();
 
   gptStart(&GPTD3, &gpt3cfg);
