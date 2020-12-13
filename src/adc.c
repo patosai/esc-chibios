@@ -1,13 +1,9 @@
 #include <ch.h>
 #include <hal.h>
-#include <stdarg.h>
 
 #include "adc.h"
-#include "constants.h"
-#include "led.h"
 #include "line.h"
 #include "log.h"
-#include "serial.h"
 
 // On the STM32F407, all ADCs are run off of APB2
 // Last time I checked mcuconf.h, APB2 runs at 42MHz

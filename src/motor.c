@@ -71,6 +71,9 @@ static pid_state_t pid_quadrature;
 //static float motor_phase_currents_buffer[3];
 static uint16_t motor_pwm_period_ticks;
 
+// offsets were found experimentally
+static float motor_current_offsets[ADC_MOTOR_PHASES_SAMPLED] = {-0.5, 0.98};
+
 static PWMConfig pwm_config = {
   .frequency = PWM_PERIOD_TICKS_MAX*PWM_FREQUENCY_HZ,
   .period = PWM_PERIOD_TICKS_MAX,
@@ -223,4 +226,15 @@ void motor_set_power_percentage(float power_percentage) {
 void motor_update_routine(void) {
   // TODO
   //get_rotor_commutation_state();
+}
+
+void motor_get_phase_currents(float* buf) {
+  // buf must be length 3:
+  // idx 0: phase A current
+  // idx 1: phase B current
+  // idx 2: phase C current
+  drv8353rs_get_phase_currents(buf);
+  buf[2] = buf[1] + motor_current_offsets[1];
+  buf[1] = buf[0] + motor_current_offsets[0];
+  buf[0] = -(buf[1] + buf[2]);
 }

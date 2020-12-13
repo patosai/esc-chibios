@@ -70,15 +70,13 @@ int main(void) {
     } else {
       led_2_turn_off();
     }
-    drv8353rs_get_phase_currents(adc_currents);
+    motor_get_phase_currents(adc_currents);
     log_println("DRV8353RS gate drive high: 0x%x",
       drv8353rs_read_register(GATE_DRIVE_HIGH_CONTROL)
     );
-    log_println("ADC temp %.1fC, Vref %.2fV, phase B %.4fV, phase C %.4fV, phase A %.2fA, phase B %.2fA, phase C %.2fA",
+    log_println("ADC temp %.1fC, Vref %.2fV, phase A %.2fA, phase B %.2fA, phase C %.2fA",
       adc_temp_celsius(),
       adc_vref(),
-      adc_phase_b_voltage(),
-      adc_phase_c_voltage(),
       adc_currents[0],
       adc_currents[1],
       adc_currents[2]
