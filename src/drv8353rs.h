@@ -22,4 +22,6 @@ void drv8353rs_manually_calibrate(void);
 bool drv8353rs_has_fault(void);
 uint16_t drv8353rs_read_register(drv8353rs_register_t);
 
+void drv8353rs_get_phase_currents(float* buf);
+
 #endif

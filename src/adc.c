@@ -20,7 +20,6 @@
 #define ADC3_CHANNELS 1
 
 #define ADC_VOLTAGE_FACTOR (3.3 / 4095.0)
-#define PHASE_RESISTANCE_OHMS 0.0005
 
 #define ADC_TRIGGER_FREQUENCY 3500 // trigger frequency of ADCs (Hz)
 #define GPT2_TIMER_FREQUENCY 21000 // timer frequency, must be a multiple of ADC_TRIGGER_FREQUENCY, and must evenly divide APB1 = 21MHz
@@ -29,7 +28,8 @@
 static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
 static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
-static adcsample_t buffered_current_sense_voltages[2]; // stores only phase B and C
+
+static adcsample_t buffered_current_sense_voltages[ADC_MOTOR_PHASES_SAMPLED];
 
 static uint8_t adcdriver_to_num(ADCDriver* adc) {
   if (adc->adc == ADC1) {
@@ -67,9 +67,7 @@ static const ADCConversionGroup adc1_config = {
   .cr1 = ADC_CR1_SCAN, // set scan mode so ADC will convert SQR1/2/3 channels
   // https://www.st.com/content/ccc/resource/technical/document/reference_manual/3d/6d/5a/66/b4/99/40/d4/DM00031020.pdf/files/DM00031020.pdf/jcr:content/translations/en.DM00031020.pdf
   // see section 13.6 Conversion on external trigger and trigger polarity
-  .cr2 = ADC_CR2_ADON // turn ADC on
-         | ADC_CR2_DMA // use DMA to transfer data to buffers
-         | ADC_CR2_EXTEN_RISING // trigger on rising edge
+  .cr2 = ADC_CR2_EXTEN_RISING // trigger on rising edge
          | ADC_CR2_EXTSEL_SRC(6), // trigger on TIM2_TRGO
   // ADCCLK operates at APB2/4 = 42MHz/4 = 10.5MHz
   // Temp and Vref need a min. sampling time of 10us = 105 cycles needed
@@ -89,9 +87,7 @@ static const ADCConversionGroup adc2_config = {
   .end_cb = NULL,
   .error_cb = adc_common_error_callback,
   .cr1 = ADC_CR1_SCAN,
-  .cr2 = ADC_CR2_ADON
-         | ADC_CR2_DMA
-         | ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
+  .cr2 = ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
   .smpr1 = ADC_SMPR1_SMP_AN13(ADC_SAMPLE_480),
   .smpr2 = ADC_SMPR2_SMP_AN6(ADC_SAMPLE_480),
   .sqr1 = 0,
@@ -106,9 +102,7 @@ static const ADCConversionGroup adc3_config = {
   .end_cb = NULL,
   .error_cb = adc_common_error_callback,
   .cr1 = ADC_CR1_SCAN,
-  .cr2 = ADC_CR2_ADON
-         | ADC_CR2_DMA
-         | ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
+  .cr2 = ADC_CR2_EXTEN_RISING, // no external src set; triggered directly from ADC1 through ADC_CCR_MULTI
   .smpr1 = ADC_SMPR1_SMP_AN12(ADC_SAMPLE_480),
   .smpr2 = 0,
   .sqr1 = 0,
@@ -206,21 +200,10 @@ float adc_vref(void) {
   return adc1_samples[0] * ADC_VOLTAGE_FACTOR;
 }
 
-void adc_retrieve_phase_currents(float* buf) {
-  // disable interrupts to prevent DMA from updating samples in the middle of retrieval
-  chSysLock();
-  buf[1] = buffered_current_sense_voltages[0];
-  buf[2] = buffered_current_sense_voltages[1];
-  chSysUnlock();
+float adc_phase_b_voltage(void) {
+  return buffered_current_sense_voltages[0] * ADC_VOLTAGE_FACTOR;
+}
 
-  buf[1] = buf[1] * ADC_VOLTAGE_FACTOR;
-  buf[2] = buf[2] * ADC_VOLTAGE_FACTOR;
-
-  // formula for converting ADC voltage to current
-  // DRV takes -0.15 to 0.15V, amplifies it 20x (changeable via setting), and outputs 0 to 3.3V
-  const float reference = 3.3/2.0;
-  const float voltage_factor = DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS;
-  buf[1] = (reference - buf[1])/voltage_factor;
-  buf[2] = (reference - buf[2])/voltage_factor;
-  buf[0] = -(buf[1] + buf[2]);
+float adc_phase_c_voltage(void) {
+  return buffered_current_sense_voltages[1] * ADC_VOLTAGE_FACTOR;
 }
