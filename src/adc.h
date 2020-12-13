@@ -1,8 +1,6 @@
 #ifndef _ADC_H_
 #define _ADC_H_
 
-#include <stdint.h>
-
 // only phase B and C
 #define ADC_MOTOR_PHASES_SAMPLED 2
 
