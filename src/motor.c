@@ -61,7 +61,7 @@
 
  */
 
-#define PWM_FREQUENCY_HZ 84000
+#define PWM_FREQUENCY_HZ 50000
 #define PWM_PERIOD_TICKS_MAX 100
 #define SQRT_3_OVER_2 sqrt(3)/2.0
 
