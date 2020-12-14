@@ -130,6 +130,21 @@ void motor_set_power_percentage(float power_percentage) {
   motor_pwm_period_ticks = ticks;
 }
 
+void motor_get_phase_currents(float* buf) {
+  // buf must be length 3:
+  // idx 0: phase A current
+  // idx 1: phase B current
+  // idx 2: phase C current
+  drv8353rs_get_phase_currents(buf);
+  buf[2] = buf[1] + motor_current_offsets[1];
+  buf[1] = buf[0] + motor_current_offsets[0];
+  buf[0] = -(buf[1] + buf[2]);
+}
+
+float motor_rotor_position_radians(void) {
+  
+}
+
 //static uint8_t last_commutation_result = 0;
 //static uint8_t get_rotor_commutation_state(void) {
 //  bool a_high = palReadLine(LINE_HALL_SENSOR_A) == PAL_HIGH;
@@ -226,15 +241,4 @@ void motor_set_power_percentage(float power_percentage) {
 void motor_update_routine(void) {
   // TODO
   //get_rotor_commutation_state();
-}
-
-void motor_get_phase_currents(float* buf) {
-  // buf must be length 3:
-  // idx 0: phase A current
-  // idx 1: phase B current
-  // idx 2: phase C current
-  drv8353rs_get_phase_currents(buf);
-  buf[2] = buf[1] + motor_current_offsets[1];
-  buf[1] = buf[0] + motor_current_offsets[0];
-  buf[0] = -(buf[1] + buf[2]);
 }
