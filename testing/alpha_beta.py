@@ -15,7 +15,7 @@ class Integrator:
 
 class AlphaBetaFilter:
     def __init__(self):
-        self.alpha = 0.5
+        self.alpha = 0.7
         self.beta = 0.01
 
         self.alpha_integrator = Integrator()
@@ -36,9 +36,10 @@ class AlphaBetaFilter:
                 "velocity": alpha_input,
                 "acceleration": beta_input}
 
+
 if __name__ == "__main__":
     filter = AlphaBetaFilter()
-    values = [0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 7, 7, 8, 9]
+    values = [0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 7, 7, 8, 9, 10, 10, 10, 9, 9, 9, 8, 8, 8, 8, 8, 8, 7, 7, 6, 6, 6, 6]
     results = [filter.update(val) for val in values]
 
     plot_x = range(len(values))

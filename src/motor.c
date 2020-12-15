@@ -8,6 +8,7 @@
 #include "line.h"
 #include "log.h"
 #include "motor.h"
+#include "motor_rotor_tracker.h"
 #include "pid.h"
 
 // CONVENTION: Phase A is 0 rad, B is 2pi/3 rad, C is 4pi/3 rad
@@ -104,15 +105,11 @@ static void setup_pwm(void) {
   palClearLine(LINE_PWM_C_COMP);
 }
 
-static void setup_hall_sensors(void) {
-  palSetLineMode(LINE_HALL_SENSOR_A, PAL_MODE_INPUT_PULLUP);
-  palSetLineMode(LINE_HALL_SENSOR_B, PAL_MODE_INPUT_PULLUP);
-  palSetLineMode(LINE_HALL_SENSOR_C, PAL_MODE_INPUT_PULLUP);
-}
-
 void motor_init(void) {
   setup_pwm();
-  setup_hall_sensors();
+
+  motor_rotor_tracker_setup();
+
   drv8353rs_init();
   motor_pwm_period_ticks = 0;
 
@@ -139,10 +136,6 @@ void motor_get_phase_currents(float* buf) {
   buf[2] = buf[1] + motor_current_offsets[1];
   buf[1] = buf[0] + motor_current_offsets[0];
   buf[0] = -(buf[1] + buf[2]);
-}
-
-float motor_rotor_position_radians(void) {
-  
 }
 
 //static uint8_t last_commutation_result = 0;
