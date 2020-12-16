@@ -25,6 +25,26 @@
 #include "line.h"
 #include "log.h"
 
+static THD_WORKING_AREA(motorUpdateThreadWorkingArea, 128);
+
+static THD_FUNCTION(motorUpdateThread, arg) {
+  (void)arg;
+  while (true) {
+    motor_update_routine();
+    chThdSleepMicroseconds(500);
+  }
+}
+
+static void start_motor_update_thread(void) {
+  chThdCreateStatic(
+    motorUpdateThreadWorkingArea,
+    sizeof(motorUpdateThreadWorkingArea),
+    NORMALPRIO,
+    motorUpdateThread,
+    NULL
+  );
+}
+
 static void init(void) {
   /*
    * System initializations.
@@ -42,21 +62,10 @@ static void init(void) {
   log_println("Initialized");
 }
 
-static void gpt3_callback(GPTDriver *driver) {
-  (void)driver;
-  motor_update_routine();
-}
-
-static GPTConfig gpt3cfg = {
-  .frequency = 10000,
-  .callback = gpt3_callback,
-};
-
 int main(void) {
   init();
 
-  gptStart(&GPTD3, &gpt3cfg);
-  gptStartContinuous(&GPTD3, 2); // run at 5kHz
+  start_motor_update_thread();
 
   float adc_currents[3];
 
@@ -72,9 +81,9 @@ int main(void) {
     }
     motor_get_phase_currents(adc_currents);
     log_println("");
-    log_println("DRV8353RS gate drive high: 0x%x",
-      drv8353rs_read_register(GATE_DRIVE_HIGH_CONTROL)
-    );
+//    log_println("DRV8353RS gate drive high: 0x%x",
+//      drv8353rs_read_register(GATE_DRIVE_HIGH_CONTROL)
+//    );
     log_println("ADC temp %.1fC, Vref %.2fV, phase A %.2fA, phase B %.2fA, phase C %.2fA",
       adc_temp_celsius(),
       adc_vref(),

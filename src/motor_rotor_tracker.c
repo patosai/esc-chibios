@@ -15,6 +15,10 @@ static const float dt = 1/TRACKER_UPDATE_FREQUENCY_HZ;
 static float alpha_integrator_value = 0;
 static float beta_integrator_value = 0;
 
+static float last_position;
+static float last_velocity;
+static float last_acceleration;
+
 typedef uint8_t commutation_state_t;
 static commutation_state_t last_commutation_state = 0;
 
@@ -65,6 +69,10 @@ static void update_alpha_beta_filter(void) {
 
   float alpha_update = alpha * error + beta_integrator_value;
   alpha_integrator_value += dt * alpha_update;
+
+  last_position = alpha_integrator_value;
+  last_velocity = alpha_update;
+  last_acceleration = beta_update;
 }
 
 static void gpt4_callback(GPTDriver *driver) {
@@ -82,9 +90,17 @@ void motor_rotor_tracker_setup(void) {
   last_commutation_state = get_commutation_state();
 
   gptStart(&GPTD4, &gpt4cfg);
-  gptStartContinuous(&GPTD3, 1);
+  gptStartContinuous(&GPTD4, 1);
 }
 
-float motor_rotor_tracker_position_radians(void) {
-  return remainder(alpha_integrator_value, 6) * 2*M_PI;
+float motor_rotor_tracker_position_revolution_fraction(void) {
+  return remainder(last_position, 6) / 6.0;
+}
+
+float motor_rotor_tracker_velocity_revs_per_sec(void) {
+  return remainder(last_velocity, 6) / 6.0;
+}
+
+float motor_rotor_tracker_acceleration_revs_per_second_squared(void) {
+  return remainder(last_acceleration, 6) / 6.0;
 }

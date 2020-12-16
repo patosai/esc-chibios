@@ -27,6 +27,8 @@ static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
 
 static adcsample_t buffered_current_sense_voltages[ADC_MOTOR_PHASES_SAMPLED];
 
+bool adc_has_new_sample_for_motor = false;
+
 static uint8_t adcdriver_to_num(ADCDriver* adc) {
   if (adc->adc == ADC1) {
     return 1;
@@ -46,6 +48,7 @@ static void all_adcs_converted_callback(ADCDriver* adc) {
   chSysLockFromISR();
   buffered_current_sense_voltages[0] = adc2_samples[0];
   buffered_current_sense_voltages[1] = adc3_samples[0];
+  adc_has_new_sample_for_motor = true;
   chSysUnlockFromISR();
 }
 

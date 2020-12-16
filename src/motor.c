@@ -62,8 +62,11 @@
 
  */
 
+// IMPORTANT: clock frequency MUST divide APB2 evenly!
+// clock frequency = PWM_FREQUENCY_HZ * PWM_PERIOD_TICKS_MAX
+// APB2 was 42MHz last time I checked
 #define PWM_FREQUENCY_HZ 50000
-#define PWM_PERIOD_TICKS_MAX 100
+#define PWM_PERIOD_TICKS_MAX 105
 #define SQRT_3_OVER_2 sqrt(3)/2.0
 
 static pid_state_t pid_direct;
@@ -201,37 +204,42 @@ void motor_get_phase_currents(float* buf) {
 //  pwmEnableChannel(&PWMD1, 2, (pwmcnt_t)(v_phase_3/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
 //}
 
-//static void set_phase_a_ticks(uint16_t ticks) {
-//  pwmEnableChannel(&PWMD1, 2, ticks);
-//  palSetPad(GPIOE, 8);
-//}
-//
+static void set_phase_a_ticks(uint16_t pct_times_100) {
+  pwmEnableChannel(&PWMD1, 2, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, pct_times_100));
+  palSetLine(LINE_PWM_C_COMP);
+}
+
 //static void disconnect_phase_a(void) {
-//  palClearPad(GPIOE, 8);
+//  palClearLine(LINE_PWM_C_COMP);
 //  pwmDisableChannel(&PWMD1, 2);
 //}
 //
-//static void set_phase_b_ticks(uint16_t ticks) {
-//  pwmEnableChannel(&PWMD1, 1, ticks);
-//  palSetPad(GPIOE, 10);
+//static void set_phase_b_ticks(uint16_t pct_times_100) {
+//  pwmEnableChannel(&PWMD1, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, pct_times_100));
+//  palSetLine(LINE_PWM_B_COMP);
 //}
 //
 //static void disconnect_phase_b(void) {
-//  palClearPad(GPIOE, 10);
+//  palClearLine(LINE_PWM_B_COMP);
 //  pwmDisableChannel(&PWMD1, 1);
 //}
 //
-//static void set_phase_c_ticks(uint16_t ticks) {
-//  pwmEnableChannel(&PWMD1, 0, ticks);
-//  palSetPad(GPIOE, 12);
+//static void set_phase_c_ticks(uint16_t pct_times_100) {
+//  pwmEnableChannel(&PWMD1, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, pct_times_100));
+//  palSetLine(LINE_PWM_A_COMP);
 //}
 //
 //static void disconnect_phase_c(void) {
-//  palClearPad(GPIOE, 12);
+//  palClearLine(LINE_PWM_A_COMP);
 //  pwmDisableChannel(&PWMD1, 0);
 //}
 
 void motor_update_routine(void) {
-  // TODO
-  //get_rotor_commutation_state();
+  if (adc_has_new_sample_for_motor) {
+    adc_has_new_sample_for_motor = false;
+
+    // TODO
+    //get_rotor_commutation_state();
+    set_phase_a_ticks(40000);
+  }
 }
