@@ -39,7 +39,7 @@ static void start_motor_update_thread(void) {
   chThdCreateStatic(
     motorUpdateThreadWorkingArea,
     sizeof(motorUpdateThreadWorkingArea),
-    NORMALPRIO,
+    HIGHPRIO,
     motorUpdateThread,
     NULL
   );
@@ -80,10 +80,6 @@ int main(void) {
       led_2_turn_off();
     }
     motor_get_phase_currents(adc_currents);
-    log_println("");
-//    log_println("DRV8353RS gate drive high: 0x%x",
-//      drv8353rs_read_register(GATE_DRIVE_HIGH_CONTROL)
-//    );
     log_println("ADC temp %.1fC, Vref %.2fV, phase A %.2fA, phase B %.2fA, phase C %.2fA",
       adc_temp_celsius(),
       adc_vref(),

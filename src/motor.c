@@ -235,11 +235,7 @@ static void set_phase_a_ticks(uint16_t pct_times_100) {
 //}
 
 void motor_update_routine(void) {
-  if (adc_has_new_sample_for_motor) {
-    adc_has_new_sample_for_motor = false;
-
-    // TODO
-    //get_rotor_commutation_state();
-    set_phase_a_ticks(40000);
-  }
+  // TODO
+  //get_rotor_commutation_state();
+  set_phase_a_ticks(4000);
 }

@@ -1,10 +1,6 @@
 #ifndef _ADC_H_
 #define _ADC_H_
 
-#include <stdbool.h>
-
-extern bool adc_has_new_sample_for_motor;
-
 // only phase B and C
 #define ADC_MOTOR_PHASES_SAMPLED 2
 
