@@ -181,9 +181,9 @@ float adc_temp_celsius(void) {
 
 float adc_throttle_percentage(void) {
   // 0.83 - 2.25V when measured
-  // say it's 0.9 to 2.2
+  // say it's 1.0 to 2.2
   float voltage = adc2_samples[1] * ADC_VOLTAGE_FACTOR;
-  float percentage = (voltage - 0.9)/2.2;
+  float percentage = (voltage - 1.0)/1.2;
   if (percentage < 0) {
     percentage = 0;
   } else if (percentage > 100.0) {

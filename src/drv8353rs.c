@@ -7,8 +7,8 @@
 #define PHASE_RESISTANCE_OHMS 0.0005
 #define DRV_REFERENCE_VOLTAGE 3.3/2.0
 
-static const uint16_t bottom_11_bit_mask = (((uint16_t)1 << 11) - 1); // generates 0000011111111111
-static const uint8_t bottom_4_bit_mask = (((uint8_t)1 << 4) - 1); // generates 00001111
+static const uint16_t bottom_11_bit_mask = 0b11111111111;
+static const uint8_t bottom_4_bit_mask = 0b1111;
 
 static uint16_t read_spi2(drv8353rs_register_t addr) {
   // https://www.ti.com/lit/ds/symlink/drv8350.pdf
