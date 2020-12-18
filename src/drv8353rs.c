@@ -4,8 +4,6 @@
 #include "line.h"
 #include "spi.h"
 
-#define PHASE_RESISTANCE_OHMS 0.0005
-#define DRV_REFERENCE_VOLTAGE 3.3/2.0
 
 static const uint16_t bottom_11_bit_mask = 0b11111111111;
 static const uint8_t bottom_4_bit_mask = 0b1111;
@@ -191,20 +189,4 @@ bool drv8353rs_has_fault(void) {
 
 uint16_t drv8353rs_read_register(drv8353rs_register_t reg) {
   return read_spi2(reg);
-}
-
-void drv8353rs_get_phase_currents(float* buf) {
-  // returns phase B and C currents in buf
-
-  // lock to prevent DMA from updating samples in the middle of retrieval
-  chSysLock();
-  buf[0] = adc_phase_b_voltage();
-  buf[1] = adc_phase_c_voltage();
-  chSysUnlock();
-
-  // formula for converting ADC voltage to current
-  // DRV takes -0.15 to 0.15V, amplifies it (changeable via setting), and outputs 0 to 3.3V
-  const float current_factor = DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS;
-  buf[0] = (DRV_REFERENCE_VOLTAGE - buf[0])/current_factor;
-  buf[1] = (DRV_REFERENCE_VOLTAGE - buf[1])/current_factor;
 }

@@ -30,3 +30,12 @@ uint16_t util_format_str_with_newline(char *buffer, uint16_t total_buffer_size, 
   return formatted_bytes;
 }
 
+float constrain(float x, float min, float max) {
+  if (x > max) {
+    x = max;
+  }
+  if (x < min) {
+    x = min;
+  }
+  return x;
+}

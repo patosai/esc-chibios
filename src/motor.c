@@ -5,12 +5,11 @@
 #include "adc.h"
 #include "constants.h"
 #include "drv8353rs.h"
-#include "led.h"
 #include "line.h"
-#include "log.h"
 #include "motor.h"
 #include "motor_rotor_tracker.h"
 #include "pid.h"
+#include "util.h"
 
 // CONVENTION: Phase A is 0 rad, B is 2pi/3 rad, C is 4pi/3 rad
 
@@ -64,24 +63,24 @@
  */
 
 // IMPORTANT: clock frequency MUST divide APB2 evenly!
-// clock frequency = PWM_FREQUENCY_HZ * PWM_PERIOD_TICKS_MAX
+// clock frequency = PWM_FREQUENCY_HZ * PWM_PERIOD_TICKS
 // APB2 was 42MHz last time I checked
 #define PWM_FREQUENCY_HZ 50000
-#define PWM_PERIOD_TICKS_MAX 105
+#define PWM_PERIOD_TICKS 105
 #define SQRT_3_OVER_2 sqrt(3)/2.0
 
 static pid_state_t pid_direct;
 static pid_state_t pid_quadrature;
 
-//static float motor_phase_currents_buffer[3];
-static uint16_t motor_pwm_period_ticks;
+static float motor_phase_currents_buffer[3];
+static float motor_power_percentage = 0;
 
 // offsets were found experimentally
 static float motor_current_offsets[ADC_MOTOR_PHASES_SAMPLED] = {-0.5, 0.98};
 
 static PWMConfig pwm_config = {
-  .frequency = PWM_PERIOD_TICKS_MAX*PWM_FREQUENCY_HZ,
-  .period = PWM_PERIOD_TICKS_MAX,
+  .frequency = PWM_PERIOD_TICKS*PWM_FREQUENCY_HZ,
+  .period = PWM_PERIOD_TICKS,
   .callback = NULL,
   .channels = {
     {.mode = PWM_OUTPUT_ACTIVE_HIGH, .callback = NULL},
@@ -115,7 +114,7 @@ void motor_init(void) {
   motor_rotor_tracker_setup();
 
   drv8353rs_init();
-  motor_pwm_period_ticks = 0;
+  motor_power_percentage = 0;
 
   pid_direct = pid_create(2, 0, 0);
   pid_quadrature = pid_create(2, 0, 0);
@@ -124,111 +123,49 @@ void motor_init(void) {
   pid_reset(&pid_quadrature);
 }
 
-void motor_set_power_percentage(float power_percentage) {
-  power_percentage = power_percentage > 100 ? 100 : power_percentage;
-  uint16_t ticks = (uint16_t)(power_percentage * PWM_PERIOD_TICKS_MAX);
-  ticks = ticks > PWM_PERIOD_TICKS_MAX ? PWM_PERIOD_TICKS_MAX : ticks;
-  motor_pwm_period_ticks = ticks;
+void motor_set_power_percentage(float percentage) {
+  motor_power_percentage = constrain(percentage, 0, 100);
 }
 
 void motor_get_phase_currents(float* buf) {
-  // buf must be length 3:
-  // idx 0: phase A current
-  // idx 1: phase B current
-  // idx 2: phase C current
-  drv8353rs_get_phase_currents(buf);
+  // buf must be length 3: [phase A, phase B, phase C]
+  adc_get_phase_voltages(buf);
+
+  // formula for converting ADC voltage to current
+  // DRV takes -0.15 to 0.15V, amplifies it (changeable via setting), and outputs 0 to 3.3V
+  const float current_factor = DRV_CURRENT_SENSE_AMPLIFICATION * PHASE_RESISTANCE_OHMS;
+  buf[0] = (DRV_REFERENCE_VOLTAGE - buf[0])/current_factor;
+  buf[1] = (DRV_REFERENCE_VOLTAGE - buf[1])/current_factor;
+
   buf[2] = buf[1] + motor_current_offsets[1];
   buf[1] = buf[0] + motor_current_offsets[0];
   buf[0] = -(buf[1] + buf[2]);
 }
 
-//static uint8_t last_commutation_result = 0;
-//static uint8_t get_rotor_commutation_state(void) {
-//  bool a_high = palReadLine(LINE_HALL_SENSOR_A) == PAL_HIGH;
-//  bool b_high = palReadLine(LINE_HALL_SENSOR_B) == PAL_HIGH;
-//  bool c_high = palReadLine(LINE_HALL_SENSOR_C) == PAL_HIGH;
-//  uint8_t result = a_high << 2 & b_high << 1 & c_high;
-//  switch (result) {
-//  case 0b100:
-//    last_commutation_result = 0;
-//    break;
-//  case 0b110:
-//    last_commutation_result = 1;
-//    break;
-//  case 0b010:
-//    last_commutation_result = 2;
-//    break;
-//  case 0b011:
-//    last_commutation_result = 3;
-//    break;
-//  case 0b001:
-//    last_commutation_result = 4;
-//    break;
-//  case 0b101:
-//    last_commutation_result = 5;
-//    break;
-//  default:
-//    log_println_in_interrupt("Unknown commutation result 0x%x", result);
-//    break;
-//  }
-//  return last_commutation_result;
-//}
-
-//
-// TODO reenable FOC on V1.1 esc
-//void motor_update_routine(void) {
-//  adc_retrieve_phase_currents(motor_phase_currents_buffer);
-//
-//  float i_alpha = motor_phase_currents_buffer[0] - motor_phase_currents_buffer[1]*0.5 - motor_phase_currents_buffer[2]*0.5;
-//  float i_beta = SQRT_3_OVER_2*(motor_phase_currents_buffer[1] - motor_phase_currents_buffer[2]);
-//
-//  float rotor_flux_direction_radians = get_rotor_flux_direction_radians();
-//  float cos_component = cos(rotor_flux_direction_radians);
-//  float sin_component = sin(rotor_flux_direction_radians);
-//  float i_direct = i_alpha*cos_component + i_beta*sin_component;
-//  float i_quadrature = -i_alpha*sin_component + i_beta*cos_component;
-//
-//  // TODO fix D/Q expected values
-//  float direct_output = pid_update(&pid_direct, 0, i_direct);
-//  // quadrature amperage should go from 0 to 15A
-//  float quadrature_output = pid_update(&pid_quadrature, 1, i_quadrature);
-//
-//  float v_alpha = direct_output*cos_component - quadrature_output*sin_component;
-//  float v_beta = direct_output*sin_component + quadrature_output*cos_component;
-//
-//  float v_phase_1 = v_alpha;
-//  float v_phase_2 = v_beta*SQRT_3_OVER_2 - v_alpha/2;
-//  float v_phase_3 = -v_beta*SQRT_3_OVER_2 - v_alpha/2;
-//
-//  pwmEnableChannel(&PWMD1, 0, (pwmcnt_t)(v_phase_1/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
-//  pwmEnableChannel(&PWMD1, 1, (pwmcnt_t)(v_phase_2/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
-//  pwmEnableChannel(&PWMD1, 2, (pwmcnt_t)(v_phase_3/BATTERY_VOLTAGE * PWM_PERIOD_TICKS_MAX));
-//}
-
-//static void set_phase_a_ticks(uint16_t pct_times_100) {
-//  pwmEnableChannel(&PWMD1, 2, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, pct_times_100));
-//  palSetLine(LINE_PWM_A_COMP);
-//}
+static void set_phase_a_ticks(pwmcnt_t ticks) {
+  pwmEnableChannel(&PWMD1, 2, ticks);
+  palSetLine(LINE_PWM_A_COMP);
+}
 //
 //static void disconnect_phase_a(void) {
 //  palClearLine(LINE_PWM_A_COMP);
 //  pwmDisableChannel(&PWMD1, 2);
 //}
 //
-//static void set_phase_b_ticks(uint16_t pct_times_100) {
-//  pwmEnableChannel(&PWMD1, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, pct_times_100));
-//  palSetLine(LINE_PWM_B_COMP);
-//}
+static void set_phase_b_ticks(pwmcnt_t ticks) {
+  pwmEnableChannel(&PWMD1, 1, ticks);
+  palSetLine(LINE_PWM_B_COMP);
+}
 //
 //static void disconnect_phase_b(void) {
 //  palClearLine(LINE_PWM_B_COMP);
 //  pwmDisableChannel(&PWMD1, 1);
 //}
 //
-//static void set_phase_c_ticks(uint16_t pct_times_100) {
-//  pwmEnableChannel(&PWMD1, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD1, pct_times_100));
-//  palSetLine(LINE_PWM_C_COMP);
-//}
+static void set_phase_c_ticks(pwmcnt_t ticks) {
+  pwmEnableChannel(&PWMD1, 0, ticks);
+  palSetLine(LINE_PWM_C_COMP);
+}
 //
 //static void disconnect_phase_c(void) {
 //  palClearLine(LINE_PWM_C_COMP);
@@ -237,7 +174,32 @@ void motor_get_phase_currents(float* buf) {
 
 void motor_update_routine(void) {
   // TODO
-  //get_rotor_commutation_state();
-//  set_phase_a_ticks(4000);
-//  set_phase_c_ticks(4000);
+  motor_get_phase_currents(motor_phase_currents_buffer);
+
+  float i_alpha = motor_phase_currents_buffer[0] - motor_phase_currents_buffer[1]*0.5 - motor_phase_currents_buffer[2]*0.5;
+  float i_beta = SQRT_3_OVER_2*(motor_phase_currents_buffer[1] - motor_phase_currents_buffer[2]);
+
+  float rotor_position_radians = motor_rotor_tracker_position_revolution_fraction() * 2*M_PI;
+  float cos_component = cos(rotor_position_radians);
+  float sin_component = sin(rotor_position_radians);
+  float i_direct = i_alpha*cos_component + i_beta*sin_component;
+  float i_quadrature = -i_alpha*sin_component + i_beta*cos_component;
+
+  float direct_output = pid_update(&pid_direct, 0, i_direct);
+  // quadrature amperage should go from 0 to 20A
+  float quadrature_output = pid_update(&pid_quadrature, 20*motor_power_percentage, i_quadrature);
+
+  float v_alpha = direct_output*cos_component - quadrature_output*sin_component;
+  float v_beta = direct_output*sin_component + quadrature_output*cos_component;
+
+  float v_phase_a = v_alpha;
+  float v_phase_b = v_beta*SQRT_3_OVER_2 - v_alpha/2;
+  float v_phase_c = -v_beta*SQRT_3_OVER_2 - v_alpha/2;
+
+  v_phase_a = constrain(v_phase_a, 0, BATTERY_VOLTAGE);
+  v_phase_b = constrain(v_phase_b, 0, BATTERY_VOLTAGE);
+  v_phase_c = constrain(v_phase_c, 0, BATTERY_VOLTAGE);
+  set_phase_a_ticks((pwmcnt_t)((v_phase_a / BATTERY_VOLTAGE) * PWM_PERIOD_TICKS));
+  set_phase_b_ticks((pwmcnt_t)((v_phase_b / BATTERY_VOLTAGE) * PWM_PERIOD_TICKS));
+  set_phase_c_ticks((pwmcnt_t)((v_phase_c / BATTERY_VOLTAGE) * PWM_PERIOD_TICKS));
 }

@@ -11,8 +11,7 @@ float adc_temp_celsius(void);
 float adc_throttle_percentage(void);
 float adc_vref(void);
 
-// phase A is not measured
-float adc_phase_b_voltage(void);
-float adc_phase_c_voltage(void);
+// buffer must be of size ADC_MOTOR_PHASES_SAMPLED
+void adc_get_phase_voltages(float*);
 
 #endif

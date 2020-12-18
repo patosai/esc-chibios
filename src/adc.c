@@ -25,7 +25,7 @@ static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
 static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
 
-static adcsample_t buffered_current_sense_voltages[ADC_MOTOR_PHASES_SAMPLED];
+static float buffered_current_sense_voltages[ADC_MOTOR_PHASES_SAMPLED];
 
 static uint8_t adcdriver_to_num(ADCDriver* adc) {
   if (adc->adc == ADC1) {
@@ -196,10 +196,9 @@ float adc_vref(void) {
   return adc1_samples[0] * ADC_VOLTAGE_FACTOR;
 }
 
-float adc_phase_b_voltage(void) {
-  return buffered_current_sense_voltages[0] * ADC_VOLTAGE_FACTOR;
-}
-
-float adc_phase_c_voltage(void) {
-  return buffered_current_sense_voltages[1] * ADC_VOLTAGE_FACTOR;
+void adc_get_phase_voltages(float *buf) {
+  chSysLock();
+  buf[0] = buffered_current_sense_voltages[0] * ADC_VOLTAGE_FACTOR;
+  buf[1] = buffered_current_sense_voltages[1] * ADC_VOLTAGE_FACTOR;
+  chSysUnlock();
 }
