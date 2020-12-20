@@ -31,7 +31,7 @@ static THD_FUNCTION(motorUpdateThread, arg) {
   (void)arg;
   while (true) {
     motor_update_routine();
-    chThdSleepMicroseconds(500);
+    chThdSleepMicroseconds(1000000);
   }
 }
 

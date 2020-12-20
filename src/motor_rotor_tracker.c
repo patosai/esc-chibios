@@ -93,7 +93,7 @@ void motor_rotor_tracker_setup(void) {
   gptStartContinuous(&GPTD4, 1);
 }
 
-float motor_rotor_tracker_position_revolution_fraction(void) {
+float motor_rotor_tracker_position_revolution_percentage(void) {
   return remainder(last_position, 6) / 6.0;
 }
 

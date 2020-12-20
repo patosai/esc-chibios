@@ -39,3 +39,10 @@ float constrain(float x, float min, float max) {
   }
   return x;
 }
+
+float scale(float x, float orig_min, float orig_max, float new_min, float new_max) {
+  x = constrain(x, orig_min, orig_max);
+  // for x in range [orig_min, orig_max], returns the value in the new scale [new_min, new_max]
+  float frac = (x - orig_min)/(orig_max-orig_min);
+  return frac*(new_max-new_min) + new_min;
+}
