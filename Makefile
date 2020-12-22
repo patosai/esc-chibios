@@ -195,3 +195,17 @@ gdb: all
 
 qemu:
 	qemu-system-gnuarmeclipse -cpu cortex-m4 -machine STM32F4-Discovery -gdb tcp::3333 -nographic -kernel build/$(PROJECT).bin
+
+c: clean clean-test
+
+## Test
+TESTDIR := ./test
+TESTBUILDDIR := $(TESTDIR)/build
+
+TESTINCDIR = $(TESTDIR)/Unity/src
+
+test:
+	foo $(test)
+
+clean-test:
+	rake clean

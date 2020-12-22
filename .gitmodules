@@ -3,3 +3,6 @@
 	url = git@github.com:ChibiOS/ChibiOS.git
 	branch = stable_19.1.x
   ignore = dirty
+[submodule "test/Unity"]
+	path = test/Unity
+	url = git@github.com:ThrowTheSwitch/Unity.git
