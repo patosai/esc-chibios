@@ -20,8 +20,6 @@ ALL_STUB_SOURCE_FILES = Dir.glob(File.join(STUBS_DIR, "*.c"))
 CC = "gcc"
 INCDIR = [SRC_DIR, STUBS_DIR, File.join(UNITY_DIR, "src")]
 
-test_namespaces = ARGV.empty? ? ALL_TEST_NAMESPACES : ARGV
-
 def namespace_to_test_file(file_namespace)
   return File.join(TEST_DIR, file_namespace + TEST_FILE_SUFFIX)
 end
@@ -34,28 +32,43 @@ def namespace_to_header_file(file_namespace)
   return File.join(SRC_DIR, file_namespace + ".h")
 end
 
-def get_tests_in_file(file_namespace)
+def test_namespace_data(file_namespace)
   test_name_regex = /void (test_[A-Za-z_]+)\(void\)/
+  setup_regex = /void setUp\(void\)/
+  teardown_regex = /void tearDown\(void\)/
   tests = []
+  has_setup = false
+  has_teardown = false
   File.open(namespace_to_test_file(file_namespace), "r") do |f|
     f.each_line do |line|
       if match = test_name_regex.match(line)
         tests << match[1]
       end
+      if !has_setup && setup_regex.match(line)
+        has_setup = true
+      end
+      if !has_teardown && teardown_regex.match(line)
+        has_teardown = true
+      end
     end
   end
-  tests
+  {tests: tests,
+   has_setup: has_setup,
+   has_teardown: has_teardown}
 end
 
 def generate_runner_file(file_namespace, random_str)
-  test_names = get_tests_in_file(file_namespace)
+  data = test_namespace_data(file_namespace)
+  test_names = data[:tests]
+  has_setup = data[:has_setup]
+  has_teardown = data[:has_teardown]
   output = [
     "#include <unity.h>",
     "#include \"#{file_namespace}.h\""
   ] +
   test_names.map { |test_name| "void #{test_name}(void);" } + [
-    "void setUp(void) {}",
-    "void tearDown(void) {}",
+    has_setup ? "void setUp(void);" : "void setUp(void) {}",
+    has_teardown ? "void tearDown(void);" : "void tearDown(void) {}",
     "int main(void) {",
     "  UNITY_BEGIN();"
   ] +
@@ -81,30 +94,37 @@ def run_command(cmd)
 end
 
 def compile_and_run_test(file_namespace)
-  random_str = SecureRandom.hex(32)
+  random_str = SecureRandom.hex(8)
   runner_filename = generate_runner_file(file_namespace, random_str)
   include_dirs = INCDIR.map { |dir| "-I#{dir}" }
-  source_files = ALL_SOURCE_FILES
-  source_files = ALL_TEST_NAMESPACES.map { |ns| namespace_to_test_file(ns) }
+  source_files = [namespace_to_source_file(file_namespace)] # could definitely be smarter here
+  source_files += ALL_TEST_NAMESPACES.map { |ns| namespace_to_test_file(ns) }
   source_files += ALL_STUB_SOURCE_FILES
   source_files << File.join(UNITY_DIR, "src", "unity.c")
   output_filename = File.join(BUILD_DIR, file_namespace + "_" + random_str + ".out")
+
+  puts "Compiling #{file_namespace} test"
   compile_command = "#{CC} #{include_dirs.join(' ')} #{runner_filename} #{source_files.join(' ')} -o #{output_filename}"
-  run_test_command = "./#{output_filename}"
-  puts "Compiling #{file_namespace} test..."
   succeeded_compiling = run_command(compile_command)
+
   if succeeded_compiling
-    puts "Running #{file_namespace} test..."
-    run_command(run_test_command)
+    puts "Running #{file_namespace} test"
+    run_command("#{File.expand_path(output_filename)}")
   end
   return output_filename
 end
 
-def clean_build_dir
+task default: :test
+
+task :clean do |t|
+  puts "Cleaning build directory"
   if File.directory?(BUILD_DIR)
     FileUtils.rm(Dir.glob(File.join(BUILD_DIR, "*")))
   end
 end
 
-clean_build_dir
-test_namespaces.each { |ns| compile_and_run_test(ns) }
+task test: [:clean] do |t, args|
+  args = args.to_a
+  test_namespaces = args.empty? ? ALL_TEST_NAMESPACES : args
+  test_namespaces.each { |ns| compile_and_run_test(ns) }
+end

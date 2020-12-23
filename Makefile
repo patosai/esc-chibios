@@ -205,7 +205,9 @@ TESTBUILDDIR := $(TESTDIR)/build
 TESTINCDIR = $(TESTDIR)/Unity/src
 
 test:
-	foo $(test)
+	rake -f $(TESTDIR)/Rakefile.rb test
 
 clean-test:
-	rake clean
+	rake -f $(TESTDIR)/Rakefile.rb clean
+
+.PHONY: test
