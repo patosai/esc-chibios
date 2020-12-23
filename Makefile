@@ -207,6 +207,8 @@ TESTINCDIR = $(TESTDIR)/Unity/src
 test:
 	rake -f $(TESTDIR)/Rakefile.rb test
 
+t: test
+
 clean-test:
 	rake -f $(TESTDIR)/Rakefile.rb clean
 
