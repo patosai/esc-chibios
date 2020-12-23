@@ -14,5 +14,5 @@ void test_constrain(void) {
 
 void test_scale(void) {
   TEST_ASSERT_EQUAL_FLOAT(5.5, scale(1, 0, 2, 5, 6));
-  TEST_ASSERT_FLOAT_WITHIN(1E-6, 0, scale(-2.3, -2.42, -1.22, -1, 9));
+  TEST_ASSERT_EQUAL_FLOAT(135.135, scale(-15.6, -23.4, -1.2, 100, 200));
 }
