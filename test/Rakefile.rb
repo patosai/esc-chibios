@@ -97,10 +97,13 @@ def compile_and_run_test(file_namespace)
   random_str = SecureRandom.hex(8)
   runner_filename = generate_runner_file(file_namespace, random_str)
   include_dirs = INCDIR.map { |dir| "-I#{dir}" }
-  source_files = [namespace_to_source_file(file_namespace)] # could definitely be smarter here
-  source_files += ALL_TEST_NAMESPACES.map { |ns| namespace_to_test_file(ns) }
+  source_files = [
+    # could definitely be smarter here about which source files to compile
+    namespace_to_source_file(file_namespace),
+    namespace_to_test_file(file_namespace),
+    File.join(UNITY_DIR, "src", "unity.c")
+  ]
   source_files += ALL_STUB_SOURCE_FILES
-  source_files << File.join(UNITY_DIR, "src", "unity.c")
   output_filename = File.join(BUILD_DIR, file_namespace + "_" + random_str + ".out")
 
   puts "Compiling #{file_namespace} test"
