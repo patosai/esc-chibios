@@ -2,8 +2,9 @@
 #define _TEST_STUB_CHPRINTF_H_
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdint.h>
 
-int chvsnprintf(char *buffer, uint16_t total_buffer_size, const char *fmt, va_list ap);
+#define chvsnprintf(buf, size, fmt, ap) vsnprintf(buf, size, fmt, ap)
 
 #endif
