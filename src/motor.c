@@ -217,9 +217,9 @@ void motor_update_routine(void) {
   float v_phase_a = v_alpha;
   float v_phase_b = v_beta*SQRT_3_OVER_2 - v_alpha/2;
   float v_phase_c = -v_beta*SQRT_3_OVER_2 - v_alpha/2;
-  pwmcnt_t pwm_a_ticks = round(scale(v_phase_a, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
-  pwmcnt_t pwm_b_ticks = round(scale(v_phase_b, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
-  pwmcnt_t pwm_c_ticks = round(scale(v_phase_c, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
+  pwmcnt_t pwm_a_ticks = (pwmcnt_t)(scale(v_phase_a, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
+  pwmcnt_t pwm_b_ticks = (pwmcnt_t)(scale(v_phase_b, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
+  pwmcnt_t pwm_c_ticks = (pwmcnt_t)(scale(v_phase_c, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
 
   set_phase_a_ticks(pwm_a_ticks);
   set_phase_b_ticks(pwm_b_ticks);
