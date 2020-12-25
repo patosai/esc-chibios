@@ -1,5 +1,6 @@
 ESC Firmware
 =========
+[![CI badge](https://circleci.com/gh/patosai/esc-chibios.svg?style=svg)](https://app.circleci.com/pipelines/github/patosai/esc-chibios)
 
 This is a brushless DC motor controller based on the STM32F407VG. It runs on ChibiOS.
 
