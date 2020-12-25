@@ -80,7 +80,7 @@ static pid_state_t pid_direct;
 static pid_state_t pid_quadrature;
 
 static float motor_phase_currents_buffer[3];
-static float motor_power_percentage = 10;
+static float motor_power_percentage = 0;
 
 // offsets were found experimentally
 //static float motor_current_offsets[ADC_MOTOR_PHASES_SAMPLED] = {-0.5, 0.98};

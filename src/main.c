@@ -18,6 +18,8 @@
 #include <hal.h>
 #include <chprintf.h>
 
+#include <stdbool.h>
+
 #include "adc.h"
 #include "drv8353rs.h"
 #include "motor.h"
@@ -45,6 +47,14 @@ static void start_motor_update_thread(void) {
   );
 }
 
+static void init_throttle_power_switch(void) {
+  palSetLineMode(LINE_THROTTLE_POWER_SWITCH, PAL_MODE_INPUT_PULLDOWN);
+}
+
+static bool throttle_power_on(void) {
+  return palReadLine(LINE_THROTTLE_POWER_SWITCH) == PAL_HIGH;
+}
+
 static void init(void) {
   /*
    * System initializations.
@@ -59,6 +69,8 @@ static void init(void) {
   log_init();
   motor_init();
 
+  init_throttle_power_switch();
+
   log_println("Initialized");
 }
 
@@ -70,23 +82,29 @@ int main(void) {
   float adc_currents[3];
 
   while (true) {
-    if (drv8353rs_has_fault()) {
-      led_2_turn_on();
-      log_println("ERROR DRV8353RS Fault 1: 0x%x, Fault 2: 0x%x",
-        drv8353rs_read_register(FAULT_STATUS_1),
-        drv8353rs_read_register(FAULT_STATUS_2)
-      );
+    if (!throttle_power_on()) {
+      log_println("throttle is off");
     } else {
-      led_2_turn_off();
+      if (drv8353rs_has_fault()) {
+        led_2_turn_on();
+        log_println("ERROR DRV8353RS Fault 1: 0x%x, Fault 2: 0x%x",
+          drv8353rs_read_register(FAULT_STATUS_1),
+          drv8353rs_read_register(FAULT_STATUS_2)
+        );
+      } else {
+        led_2_turn_off();
+      }
+      motor_get_phase_currents(adc_currents);
+      log_println("ADC temp %.1fC, Vref %.2fV, throttle %.2f, phase A %.2fA, phase B %.2fA, phase C %.2fA",
+        adc_temp_celsius(),
+        adc_vref(),
+        adc_throttle_percentage(),
+        adc_currents[0],
+        adc_currents[1],
+        adc_currents[2]
+      );
     }
-    motor_get_phase_currents(adc_currents);
-    log_println("ADC temp %.1fC, Vref %.2fV, phase A %.2fA, phase B %.2fA, phase C %.2fA",
-      adc_temp_celsius(),
-      adc_vref(),
-      adc_currents[0],
-      adc_currents[1],
-      adc_currents[2]
-    );
+
     chThdSleepMilliseconds(1000);
   }
 }
