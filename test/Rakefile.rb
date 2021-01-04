@@ -18,6 +18,8 @@ ALL_TEST_NAMESPACES = Dir.glob(File.join(TEST_DIR, "*" + TEST_FILE_SUFFIX)).map 
 ALL_STUB_SOURCE_FILES = Dir.glob(File.join(STUBS_DIR, "*.c"))
 
 CC = "gcc"
+CCFLAGS = ""
+LDFLAGS = "-lm"
 INCDIR = [SRC_DIR, STUBS_DIR, File.join(UNITY_DIR, "src")]
 
 def namespace_to_test_file(file_namespace)
@@ -64,7 +66,7 @@ def generate_runner_file(file_namespace, random_str)
   has_teardown = data[:has_teardown]
   output = [
     "#include <unity.h>",
-    "#include \"#{file_namespace}.h\""
+    "#include \"#{file_namespace}.h\"",
   ] +
   test_names.map { |test_name| "void #{test_name}(void);" } + [
     has_setup ? "void setUp(void);" : "void setUp(void) {}",
@@ -106,8 +108,9 @@ def compile_and_run_test(file_namespace)
   source_files += ALL_STUB_SOURCE_FILES
   output_filename = File.join(BUILD_DIR, file_namespace + "_" + random_str + ".out")
 
+  puts ""
   puts "Compiling #{file_namespace} test"
-  compile_command = "#{CC} #{include_dirs.join(' ')} #{runner_filename} #{source_files.join(' ')} -o #{output_filename}"
+  compile_command = "#{CC} #{CCFLAGS} #{include_dirs.join(' ')} #{runner_filename} #{source_files.join(' ')} -o #{output_filename} #{LDFLAGS}"
   succeeded_compiling = run_command(compile_command)
 
   if succeeded_compiling
