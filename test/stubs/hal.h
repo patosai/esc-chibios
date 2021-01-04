@@ -38,7 +38,6 @@ line_t PAL_LINE(port_t, pad_t);
 
 // PAL
 #define PAL_EVENT_MODE_BOTH_EDGES 5
-
 typedef void* palcallback_t;
 typedef uint8_t palstatus_t;
 #define PAL_LOW 0
