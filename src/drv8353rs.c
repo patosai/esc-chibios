@@ -78,7 +78,7 @@ void drv8353rs_init(void) {
 
   uint16_t tx_driver_control = 0 << 10 // associated half bridge shutdown in response to overcurrent
       | 0 << 9 // undervoltage lockout fault enabled
-      | 0 << 8 // gate drive fault enabled
+      | 1 << 8 // gate drive fault disabled YOLO
       | 1 << 7 // thermal warning reported on nFAULT and FAULT bit
       | 1 << 5 // 3x PWM mode - low controls Hi-Z, high side controls on/off when low side pin is high
       | 0 << 4 // 1x PWM mode uses synchronous rectification, doesn't apply since not using 1x PWM mode

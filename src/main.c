@@ -47,7 +47,7 @@ static THD_FUNCTION(motorUpdateThread, arg) {
     } else {
       motor_disconnect();
     }
-    chThdSleepMilliseconds(1);
+    chThdSleepMicroseconds(200);
   }
 }
 
