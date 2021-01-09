@@ -185,7 +185,6 @@ void motor_disconnect(void) {
 }
 
 void motor_update_routine(void) {
-  // TODO
   if (motor_power_percentage < 5) {
     // maybe we should regen brake
     motor_disconnect();

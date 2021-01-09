@@ -32,8 +32,9 @@ static THD_WORKING_AREA(motorUpdateThreadWorkingArea, 128);
 static THD_FUNCTION(motorUpdateThread, arg) {
   (void)arg;
   while (true) {
+    motor_set_power_percentage(adc_throttle_percentage());
     motor_update_routine();
-    chThdSleepMicroseconds(1000000);
+    chThdSleepMilliseconds(1);
   }
 }
 
