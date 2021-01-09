@@ -78,6 +78,7 @@ void drv8353rs_init(void) {
 
   uint16_t tx_driver_control = 0 << 10 // associated half bridge shutdown in response to overcurrent
       | 0 << 9 // undervoltage lockout fault enabled
+      | 0 << 8 // gate drive fault enabled
       | 1 << 7 // thermal warning reported on nFAULT and FAULT bit
       | 1 << 5 // 3x PWM mode - low controls Hi-Z, high side controls on/off when low side pin is high
       | 0 << 4 // 1x PWM mode uses synchronous rectification, doesn't apply since not using 1x PWM mode
@@ -98,16 +99,17 @@ void drv8353rs_init(void) {
   // I = Q/t
   // minimum drive current = 285nC/500ns = 0.57A
   // closest greater option is 600mA
+  // choose 950 since 600 is giving gate driver faults on the high side
   uint16_t tx_gate_drive_high = 0b000 << 8 // don't lock settings just yet
-      | 0b1001 << 4 // high side rise drive current = 600mA
-      | 0b0100 << 0 // high side fall drive current = 600mA
+      | 0b1110 << 4 // high side rise drive current = 950mA
+      | 0b1110 << 0 // high side fall drive current = 1900mA
       ;
   write_spi2(GATE_DRIVE_HIGH_CONTROL, tx_gate_drive_high);
 
   uint16_t tx_gate_drive_low = 0 << 10 // when overcurrent is set to automatic retrying fault, fault is cleared after tRETRY
       | 0b10 << 8 // gate current drive time should be ~714ns, allow check to be 2000ns
-      | 0b1001 << 4 // high side rise drive current = 600mA
-      | 0b0100 << 0 // high side fall drive current = 600mA
+      | 0b1011 << 4 // high side rise drive current = 700mA
+      | 0b0101 << 0 // high side fall drive current = 700mA
       ;
   write_spi2(GATE_DRIVE_LOW_CONTROL, tx_gate_drive_low);
 

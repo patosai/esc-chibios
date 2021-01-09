@@ -23,17 +23,30 @@
 #include "adc.h"
 #include "drv8353rs.h"
 #include "motor.h"
+#include "motor_rotor_tracker.h"
 #include "led.h"
 #include "line.h"
 #include "log.h"
 
 static THD_WORKING_AREA(motorUpdateThreadWorkingArea, 128);
 
+static void init_throttle_power_switch(void) {
+  palSetLineMode(LINE_THROTTLE_POWER_SWITCH, PAL_MODE_INPUT_PULLDOWN);
+}
+
+static bool throttle_power_on(void) {
+  return palReadLine(LINE_THROTTLE_POWER_SWITCH) == PAL_HIGH;
+}
+
 static THD_FUNCTION(motorUpdateThread, arg) {
   (void)arg;
   while (true) {
-    motor_set_power_percentage(adc_throttle_percentage());
-    motor_update_routine();
+    if (throttle_power_on()) {
+      motor_set_power_percentage(adc_throttle_percentage());
+      motor_update_routine();
+    } else {
+      motor_disconnect();
+    }
     chThdSleepMilliseconds(1);
   }
 }
@@ -46,14 +59,6 @@ static void start_motor_update_thread(void) {
     motorUpdateThread,
     NULL
   );
-}
-
-static void init_throttle_power_switch(void) {
-  palSetLineMode(LINE_THROTTLE_POWER_SWITCH, PAL_MODE_INPUT_PULLDOWN);
-}
-
-static bool throttle_power_on(void) {
-  return palReadLine(LINE_THROTTLE_POWER_SWITCH) == PAL_HIGH;
 }
 
 static void init(void) {
@@ -96,13 +101,11 @@ int main(void) {
         led_2_turn_off();
       }
       motor_get_phase_currents(adc_currents);
-      log_println("ADC temp %.1fC, Vref %.2fV, throttle %.2f, phase A %.2fA, phase B %.2fA, phase C %.2fA",
+      log_println("ADC temp %.1fC, Vref %.2fV, throttle %.2f, commutation state %d",
         adc_temp_celsius(),
         adc_vref(),
         adc_throttle_percentage(),
-        adc_currents[0],
-        adc_currents[1],
-        adc_currents[2]
+        motor_rotor_tracker_last_commutation_state()
       );
     }
 

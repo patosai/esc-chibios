@@ -93,6 +93,10 @@ void motor_rotor_tracker_setup(void) {
   gptStartContinuous(&GPTD4, 1);
 }
 
+uint8_t motor_rotor_tracker_last_commutation_state(void) {
+  return last_commutation_state;
+}
+
 float motor_rotor_tracker_position_revolution_percentage(void) {
   return remainder(last_position, 6) / 6.0;
 }
