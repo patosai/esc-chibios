@@ -71,8 +71,8 @@
 //#define SQRT_3_OVER_2 sqrt(3)/2.0
 #define SQRT_3_OVER_2 0.866
 
-#define PID_LOOP_P 0.1
-#define PID_LOOP_I 0.01
+#define PID_LOOP_P 5
+#define PID_LOOP_I 0.05
 #define PID_LOOP_D 0
 #define PID_LOOP_MIN_OUT 0
 #define PID_LOOP_MAX_OUT 100
@@ -189,11 +189,13 @@ void motor_disconnect(void) {
 }
 
 void motor_update_routine(void) {
-  if (motor_power_percentage < 5) {
-    // maybe we should regen brake
-    motor_disconnect();
-    return;
-  }
+//  if (motor_power_percentage < 5) {
+//    // maybe we should regen brake
+//    motor_disconnect();
+//    return;
+//  }
+//
+
   motor_get_phase_currents(motor_phase_currents_buffer);
 
   float i_alpha = motor_phase_currents_buffer[0] - motor_phase_currents_buffer[1]*0.5 - motor_phase_currents_buffer[2]*0.5;
@@ -204,7 +206,6 @@ void motor_update_routine(void) {
   float sin_component = sin_lookup[percentage];
   float i_direct = i_alpha*cos_component + i_beta*sin_component;
   float i_quadrature = -i_alpha*sin_component + i_beta*cos_component;
-  log_println("cos %.2f, sin %.2f", cos_component, sin_component);
 
   float direct_output = pid_update(&pid_direct, 0, i_direct);
   // quadrature amperage should go from 0 to 20A
