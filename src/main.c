@@ -42,12 +42,11 @@ static THD_FUNCTION(motorUpdateThread, arg) {
   (void)arg;
   while (true) {
     if (throttle_power_on()) {
-      motor_set_power_percentage(adc_throttle_percentage());
       motor_update_routine();
     } else {
       motor_disconnect();
     }
-    chThdSleepMicroseconds(200);
+    chThdSleepMicroseconds(1000);
   }
 }
 

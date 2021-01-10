@@ -185,11 +185,20 @@ void motor_disconnect(void) {
 }
 
 void motor_update_routine(void) {
+  motor_set_power_percentage(adc_throttle_percentage());
+
   if (motor_power_percentage < 5) {
     // maybe we should regen brake
     motor_disconnect();
   } else {
-    pwmcnt_t ticks = motor_power_percentage / 100.0 * PWM_PERIOD_TICKS;
+    pwmcnt_t ticks = constrain(motor_power_percentage / 100.0 * PWM_PERIOD_TICKS, 0, PWM_PERIOD_TICKS);
+
+    // TODO why does the system crash when the following is removed..?
+    if (ticks > 20) {
+      // prevent test blowup
+      ticks = 20;
+    }
+
     pwmcnt_t complementary_ticks = PWM_PERIOD_TICKS - ticks;
 
     uint8_t commutation_state = motor_rotor_tracker_last_commutation_state();
