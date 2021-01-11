@@ -5,11 +5,13 @@
 #include "adc.h"
 #include "constants.h"
 #include "drv8353rs.h"
+#include "led.h"
 #include "line.h"
 #include "log.h"
 #include "motor.h"
 #include "motor_rotor_tracker.h"
 #include "pid.h"
+#include "throttle.h"
 #include "util.h"
 
 // CONVENTION: Phase A is 0 rad, B is 2pi/3 rad, C is 4pi/3 rad
@@ -80,8 +82,6 @@
 static pid_state_t pid_direct;
 static pid_state_t pid_quadrature;
 
-static float motor_power_percentage = 0;
-
 // offsets were found experimentally
 //static float motor_current_offsets[ADC_MOTOR_PHASES_SAMPLED] = {-0.5, 0.98};
 
@@ -129,10 +129,6 @@ void motor_init(void) {
   pid_reset(&pid_quadrature);
 }
 
-void motor_set_power_percentage(float percentage) {
-  motor_power_percentage = constrain(percentage, 0, 100);
-}
-
 void motor_get_phase_currents(float* buf) {
   // buf must be length 3: [phase A, phase B, phase C]
   adc_get_phase_voltages(buf);
@@ -148,95 +144,85 @@ void motor_get_phase_currents(float* buf) {
   buf[0] = -(buf[1] + buf[2]);
 }
 
-static void set_phase_a_ticks(pwmcnt_t ticks) {
-  pwmEnableChannel(&PWMD1, 2, ticks);
+static void set_phase_a_ticks_in_interrupt(pwmcnt_t ticks) {
+  pwmEnableChannelI(&PWMD1, 2, ticks);
   palSetLine(LINE_PWM_A_COMP);
 }
 
-static void disconnect_phase_a(void) {
+static void disconnect_phase_a_in_interrupt(void) {
   palClearLine(LINE_PWM_A_COMP);
-//  pwmDisableChannel(&PWMD1, 2);
 }
 
-static void set_phase_b_ticks(pwmcnt_t ticks) {
-  pwmEnableChannel(&PWMD1, 1, ticks);
+static void set_phase_b_ticks_in_interrupt(pwmcnt_t ticks) {
+  pwmEnableChannelI(&PWMD1, 1, ticks);
   palSetLine(LINE_PWM_B_COMP);
 }
 
-static void disconnect_phase_b(void) {
+static void disconnect_phase_b_in_interrupt(void) {
   palClearLine(LINE_PWM_B_COMP);
-//  pwmDisableChannel(&PWMD1, 1);
 }
 
-static void set_phase_c_ticks(pwmcnt_t ticks) {
-  pwmEnableChannel(&PWMD1, 0, ticks);
+static void set_phase_c_ticks_in_interrupt(pwmcnt_t ticks) {
+  pwmEnableChannelI(&PWMD1, 0, ticks);
   palSetLine(LINE_PWM_C_COMP);
 }
 
-static void disconnect_phase_c(void) {
+static void disconnect_phase_c_in_interrupt(void) {
   palClearLine(LINE_PWM_C_COMP);
-//  pwmDisableChannel(&PWMD1, 0);
 }
 
-void motor_disconnect(void) {
-  disconnect_phase_a();
-  disconnect_phase_b();
-  disconnect_phase_c();
+static void disconnect_in_interrupt(void) {
+  disconnect_phase_a_in_interrupt();
+  disconnect_phase_b_in_interrupt();
+  disconnect_phase_c_in_interrupt();
 }
 
-void motor_update_routine(void) {
-  motor_set_power_percentage(adc_throttle_percentage());
+void motor_update_callback(void) {
+  float power_percentage = throttle_percentage();
 
-  if (motor_power_percentage < 5) {
-    // maybe we should regen brake
-    motor_disconnect();
-  } else {
-    pwmcnt_t ticks = constrain(motor_power_percentage / 100.0 * PWM_PERIOD_TICKS, 0, PWM_PERIOD_TICKS);
+  if (!throttle_power_on() || power_percentage < 5) {
+    disconnect_in_interrupt();
+    return;
+  }
 
-    // TODO why does the system crash when the following is removed..?
-    if (ticks > 20) {
-      // prevent test blowup
-      ticks = 20;
-    }
+  pwmcnt_t ticks = power_percentage / 100.0 * PWM_PERIOD_TICKS;
+  pwmcnt_t complementary_ticks = PWM_PERIOD_TICKS - ticks;
 
-    pwmcnt_t complementary_ticks = PWM_PERIOD_TICKS - ticks;
-
-    uint8_t commutation_state = motor_rotor_tracker_last_commutation_state();
-    switch (commutation_state) {
-      case 0:
-        set_phase_a_ticks(ticks);
-        set_phase_b_ticks(complementary_ticks);
-        disconnect_phase_c();
-        break;
-      case 1:
-        set_phase_a_ticks(ticks);
-        disconnect_phase_b();
-        set_phase_c_ticks(complementary_ticks);
-        break;
-      case 2:
-        disconnect_phase_a();
-        set_phase_b_ticks(ticks);
-        set_phase_c_ticks(complementary_ticks);
-        break;
-      case 3:
-        set_phase_a_ticks(complementary_ticks);
-        set_phase_b_ticks(ticks);
-        disconnect_phase_c();
-        break;
-      case 4:
-        set_phase_a_ticks(complementary_ticks);
-        disconnect_phase_b();
-        set_phase_c_ticks(ticks);
-        break;
-      case 5:
-        disconnect_phase_a();
-        set_phase_b_ticks(complementary_ticks);
-        set_phase_c_ticks(ticks);
-        break;
-      default:
-        motor_disconnect();
-        break;
-    }
+  uint8_t commutation_state = motor_rotor_tracker_last_commutation_state();
+  switch (commutation_state) {
+    case 0:
+      set_phase_a_ticks_in_interrupt(ticks);
+      set_phase_b_ticks_in_interrupt(complementary_ticks);
+      disconnect_phase_c_in_interrupt();
+      break;
+    case 1:
+      set_phase_a_ticks_in_interrupt(ticks);
+      disconnect_phase_b_in_interrupt();
+      set_phase_c_ticks_in_interrupt(complementary_ticks);
+      break;
+    case 2:
+      disconnect_phase_a_in_interrupt();
+      set_phase_b_ticks_in_interrupt(ticks);
+      set_phase_c_ticks_in_interrupt(complementary_ticks);
+      break;
+    case 3:
+      set_phase_a_ticks_in_interrupt(complementary_ticks);
+      set_phase_b_ticks_in_interrupt(ticks);
+      disconnect_phase_c_in_interrupt();
+      break;
+    case 4:
+      set_phase_a_ticks_in_interrupt(complementary_ticks);
+      disconnect_phase_b_in_interrupt();
+      set_phase_c_ticks_in_interrupt(ticks);
+      break;
+    case 5:
+      disconnect_phase_a_in_interrupt();
+      set_phase_b_ticks_in_interrupt(complementary_ticks);
+      set_phase_c_ticks_in_interrupt(ticks);
+      break;
+    default:
+      disconnect_in_interrupt();
+      break;
   }
 }
 

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "adc.h"
 #include "line.h"
 #include "motor_rotor_tracker.h"
 
@@ -45,21 +46,10 @@ static commutation_state_t get_commutation_state(void) {
   }
 }
 
-static void hall_sensor_change_callback(void* input) {
-  (void)input;
-  last_commutation_state = get_commutation_state();
-}
-
 static void setup_hall_sensors(void) {
   palSetLineMode(LINE_HALL_SENSOR_A, PAL_MODE_INPUT_PULLUP);
   palSetLineMode(LINE_HALL_SENSOR_B, PAL_MODE_INPUT_PULLUP);
   palSetLineMode(LINE_HALL_SENSOR_C, PAL_MODE_INPUT_PULLUP);
-
-  palSetLineCallback(LINE_HALL_SENSOR_A, (palcallback_t)hall_sensor_change_callback, NULL);
-  palSetLineCallback(LINE_HALL_SENSOR_B, (palcallback_t)hall_sensor_change_callback, NULL);
-  palSetLineCallback(LINE_HALL_SENSOR_C, (palcallback_t)hall_sensor_change_callback, NULL);
-
-  palEnableLineEvent(LINE_HALL_SENSOR_A, PAL_EVENT_MODE_BOTH_EDGES);
 }
 
 static void update_alpha_beta_filter(void) {
