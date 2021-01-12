@@ -19,7 +19,7 @@ static void gpt3_callback(GPTDriver *driver) {
 }
 
 // with 26" wheels, and 9 sets of rotor poles, 2500Hz update will allow up to 39mph motion
-// go to 3000
+// go to 3000Hz
 static const GPTConfig gpt3cfg = {
   .frequency = 21000,
   .callback = gpt3_callback,
