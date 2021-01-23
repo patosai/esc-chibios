@@ -59,18 +59,19 @@ int main(void) {
   float adc_currents[3];
 
   while (true) {
+    if (drv8353rs_has_fault()) {
+      led_2_turn_on();
+      log_println("ERROR DRV8353RS Fault 1: 0x%x, Fault 2: 0x%x",
+        drv8353rs_read_register(FAULT_STATUS_1),
+        drv8353rs_read_register(FAULT_STATUS_2)
+      );
+    } else {
+      led_2_turn_off();
+    }
+
     if (!throttle_power_on()) {
       log_println("throttle is off");
     } else {
-      if (drv8353rs_has_fault()) {
-        led_2_turn_on();
-        log_println("ERROR DRV8353RS Fault 1: 0x%x, Fault 2: 0x%x",
-          drv8353rs_read_register(FAULT_STATUS_1),
-          drv8353rs_read_register(FAULT_STATUS_2)
-        );
-      } else {
-        led_2_turn_off();
-      }
       motor_get_phase_currents(adc_currents);
       log_println("ADC temp %.1fC, Vref %.2fV, throttle %.2f, commutation state %d",
         adc_temp_celsius(),
