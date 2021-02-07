@@ -221,6 +221,7 @@ void motor_update_callback(void) {
       set_phase_c_ticks_in_interrupt(ticks);
       break;
     default:
+      log_error_in_interrupt("Unknown commutation state %d", commutation_state);
       disconnect_in_interrupt();
       break;
   }
