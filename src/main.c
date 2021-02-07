@@ -61,7 +61,7 @@ int main(void) {
   while (true) {
     if (drv8353rs_has_fault()) {
       led_2_turn_on();
-      log_error("DRV8353RS Fault 1: 0x%x, Fault 2: 0x%x",
+      log_error("DRV8353RS fault 1: 0x%x, fault 2: 0x%x",
         drv8353rs_read_register(FAULT_STATUS_1),
         drv8353rs_read_register(FAULT_STATUS_2)
       );
