@@ -46,13 +46,9 @@ static commutation_state_t get_commutation_state(void) {
   }
 }
 
-static void setup_hall_sensors(void) {
-  palSetLineMode(LINE_HALL_SENSOR_A, PAL_MODE_INPUT_PULLUP);
-  palSetLineMode(LINE_HALL_SENSOR_B, PAL_MODE_INPUT_PULLUP);
-  palSetLineMode(LINE_HALL_SENSOR_C, PAL_MODE_INPUT_PULLUP);
-}
-
 static void update_alpha_beta_filter(void) {
+  last_commutation_state = get_commutation_state();
+
   float error = last_commutation_state - alpha_integrator_value;
   float beta_update = beta * error;
   beta_integrator_value += dt * beta_update;
@@ -65,22 +61,23 @@ static void update_alpha_beta_filter(void) {
   last_acceleration = beta_update;
 }
 
-static void gpt4_callback(GPTDriver *driver) {
-  (void)driver;
-  update_alpha_beta_filter();
-}
+static void setup_hall_sensors(void) {
+  palSetLineMode(LINE_HALL_SENSOR_A, PAL_MODE_INPUT_PULLUP);
+  palSetLineMode(LINE_HALL_SENSOR_B, PAL_MODE_INPUT_PULLUP);
+  palSetLineMode(LINE_HALL_SENSOR_C, PAL_MODE_INPUT_PULLUP);
 
-static GPTConfig gpt4cfg = {
-  .frequency = TRACKER_UPDATE_FREQUENCY_HZ,
-  .callback = gpt4_callback,
-};
+  palSetLineCallback(LINE_HALL_SENSOR_A, (palcallback_t)update_alpha_beta_filter, NULL);
+  palSetLineCallback(LINE_HALL_SENSOR_B, (palcallback_t)update_alpha_beta_filter, NULL);
+  palSetLineCallback(LINE_HALL_SENSOR_C, (palcallback_t)update_alpha_beta_filter, NULL);
+
+  palEnableLineEvent(LINE_HALL_SENSOR_A, PAL_EVENT_MODE_BOTH_EDGES);
+  palEnableLineEvent(LINE_HALL_SENSOR_B, PAL_EVENT_MODE_BOTH_EDGES);
+  palEnableLineEvent(LINE_HALL_SENSOR_C, PAL_EVENT_MODE_BOTH_EDGES);
+}
 
 void motor_rotor_tracker_setup(void) {
   setup_hall_sensors();
   last_commutation_state = get_commutation_state();
-
-  gptStart(&GPTD4, &gpt4cfg);
-  gptStartContinuous(&GPTD4, 1);
 }
 
 uint8_t motor_rotor_tracker_last_commutation_state(void) {
