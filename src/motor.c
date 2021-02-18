@@ -10,7 +10,9 @@
 #include "log.h"
 #include "motor.h"
 #include "motor_rotor_tracker.h"
+#ifdef USE_FOC
 #include "pid.h"
+#endif
 #include "throttle.h"
 #include "util.h"
 
@@ -70,9 +72,9 @@
 // APB2 was 42MHz last time I checked
 #define PWM_FREQUENCY_HZ 50000
 #define PWM_PERIOD_TICKS 840
-//#define SQRT_3_OVER_2 sqrt(3)/2.0
-#define SQRT_3_OVER_2 0.866
+#define SQRT_3_OVER_2 sqrt(3)/2.0
 
+#ifdef USE_FOC
 #define PID_LOOP_P 5
 #define PID_LOOP_I 0.05
 #define PID_LOOP_D 0
@@ -81,6 +83,7 @@
 
 static pid_state_t pid_direct;
 static pid_state_t pid_quadrature;
+#endif
 
 // offsets were found experimentally
 //static float motor_current_offsets[ADC_MOTOR_PHASES_SAMPLED] = {-0.5, 0.98};
@@ -122,11 +125,11 @@ void motor_init(void) {
 
   drv8353rs_init();
 
-  pid_direct = pid_create(PID_LOOP_P, PID_LOOP_I, PID_LOOP_D, PID_LOOP_MIN_OUT, PID_LOOP_MAX_OUT);
-  pid_quadrature = pid_create(PID_LOOP_P, PID_LOOP_I, PID_LOOP_D, PID_LOOP_MIN_OUT, PID_LOOP_MAX_OUT);
-
-  pid_reset(&pid_direct);
-  pid_reset(&pid_quadrature);
+//  pid_direct = pid_create(PID_LOOP_P, PID_LOOP_I, PID_LOOP_D, PID_LOOP_MIN_OUT, PID_LOOP_MAX_OUT);
+//  pid_quadrature = pid_create(PID_LOOP_P, PID_LOOP_I, PID_LOOP_D, PID_LOOP_MIN_OUT, PID_LOOP_MAX_OUT);
+//
+//  pid_reset(&pid_direct);
+//  pid_reset(&pid_quadrature);
 }
 
 void motor_get_phase_currents(float* buf) {
@@ -178,6 +181,47 @@ static void disconnect_in_interrupt(void) {
 }
 
 void motor_update_callback(void) {
+#ifdef USE_FOC
+// TODO FOC doesn't totally work yet
+//  if (motor_power_percentage < 5) {
+//    // maybe we should regen brake
+//    disconnect_in_interrupt
+//    return;
+//  }
+//  motor_get_phase_currents(motor_phase_currents_buffer);
+//
+//  float i_alpha = motor_phase_currents_buffer[0] - motor_phase_currents_buffer[1]*0.5 - motor_phase_currents_buffer[2]*0.5;
+//  float i_beta = SQRT_3_OVER_2*(motor_phase_currents_buffer[1] - motor_phase_currents_buffer[2]);
+//
+//  uint16_t percentage = ((uint16_t)(motor_rotor_tracker_position_revolution_percentage())) % 100;
+//  float cos_component = sin_lookup[(percentage + 25) % 100];
+//  float sin_component = sin_lookup[percentage];
+//  float i_direct = i_alpha*cos_component + i_beta*sin_component;
+//  float i_quadrature = -i_alpha*sin_component + i_beta*cos_component;
+//  log_println("cos %.2f, sin %.2f", cos_component, sin_component);
+//
+//  float direct_output = pid_update(&pid_direct, 0, i_direct);
+//  // quadrature amperage should go from 0 to 20A
+//  float quadrature_output = pid_update(&pid_quadrature, motor_power_percentage*20/100.0, i_quadrature);
+//
+//  direct_output = direct_output * BATTERY_VOLTAGE / 100.0;
+//  quadrature_output = quadrature_output * BATTERY_VOLTAGE / 100.0;
+//
+//  float v_alpha = direct_output*cos_component - quadrature_output*sin_component;
+//  float v_beta = direct_output*sin_component + quadrature_output*cos_component;
+//
+//  // v_phase could go from -1*PID_LOOP_MAX_OUT to PID_LOOP_MAX_OUT
+//  float v_phase_a = v_alpha;
+//  float v_phase_b = (v_beta*SQRT_3_OVER_2) - (v_alpha/2);
+//  float v_phase_c = (-v_beta*SQRT_3_OVER_2) - (v_alpha/2);
+//  pwmcnt_t pwm_a_ticks = (pwmcnt_t)(scale(v_phase_a, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
+//  pwmcnt_t pwm_b_ticks = (pwmcnt_t)(scale(v_phase_b, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
+//  pwmcnt_t pwm_c_ticks = (pwmcnt_t)(scale(v_phase_c, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
+//
+//  set_phase_a_ticks(pwm_a_ticks);
+//  set_phase_b_ticks(pwm_b_ticks);
+//  set_phase_c_ticks(pwm_c_ticks);
+#else
   float power_percentage = throttle_percentage();
 
   if (!throttle_power_on() || power_percentage < 5) {
@@ -225,46 +269,5 @@ void motor_update_callback(void) {
       disconnect_in_interrupt();
       break;
   }
+#endif
 }
-
-// FOC routine - use at a future point in time
-//void motor_update_routine(void) {
-//  if (motor_power_percentage < 5) {
-//    // maybe we should regen brake
-//    motor_disconnect();
-//    return;
-//  }
-//  motor_get_phase_currents(motor_phase_currents_buffer);
-//
-//  float i_alpha = motor_phase_currents_buffer[0] - motor_phase_currents_buffer[1]*0.5 - motor_phase_currents_buffer[2]*0.5;
-//  float i_beta = SQRT_3_OVER_2*(motor_phase_currents_buffer[1] - motor_phase_currents_buffer[2]);
-//
-//  uint16_t percentage = ((uint16_t)(motor_rotor_tracker_position_revolution_percentage())) % 100;
-//  float cos_component = sin_lookup[(percentage + 25) % 100];
-//  float sin_component = sin_lookup[percentage];
-//  float i_direct = i_alpha*cos_component + i_beta*sin_component;
-//  float i_quadrature = -i_alpha*sin_component + i_beta*cos_component;
-//  log_println("cos %.2f, sin %.2f", cos_component, sin_component);
-//
-//  float direct_output = pid_update(&pid_direct, 0, i_direct);
-//  // quadrature amperage should go from 0 to 20A
-//  float quadrature_output = pid_update(&pid_quadrature, motor_power_percentage*20/100.0, i_quadrature);
-//
-//  direct_output = direct_output * BATTERY_VOLTAGE / 100.0;
-//  quadrature_output = quadrature_output * BATTERY_VOLTAGE / 100.0;
-//
-//  float v_alpha = direct_output*cos_component - quadrature_output*sin_component;
-//  float v_beta = direct_output*sin_component + quadrature_output*cos_component;
-//
-//  // v_phase could go from -1*PID_LOOP_MAX_OUT to PID_LOOP_MAX_OUT
-//  float v_phase_a = v_alpha;
-//  float v_phase_b = (v_beta*SQRT_3_OVER_2) - (v_alpha/2);
-//  float v_phase_c = (-v_beta*SQRT_3_OVER_2) - (v_alpha/2);
-//  pwmcnt_t pwm_a_ticks = (pwmcnt_t)(scale(v_phase_a, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
-//  pwmcnt_t pwm_b_ticks = (pwmcnt_t)(scale(v_phase_b, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
-//  pwmcnt_t pwm_c_ticks = (pwmcnt_t)(scale(v_phase_c, -PID_LOOP_MAX_OUT, PID_LOOP_MAX_OUT, 0, PWM_PERIOD_TICKS));
-//
-//  set_phase_a_ticks(pwm_a_ticks);
-//  set_phase_b_ticks(pwm_b_ticks);
-//  set_phase_c_ticks(pwm_c_ticks);
-//}

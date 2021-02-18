@@ -100,15 +100,15 @@ void drv8353rs_init(void) {
   // minimum drive current = 285nC/500ns = 0.57A
   // closest greater option is 600mA
   uint16_t tx_gate_drive_high = 0b000 << 8 // don't lock settings just yet
-      | 0b1001 << 4 // high side rise drive current = 600mA
-      | 0b0100 << 0 // high side fall drive current = 600mA
+      | 0b0010 << 4 // high side rise drive current = 600mA
+      | 0b0010 << 0 // high side fall drive current = 600mA
       ;
   write_spi2(GATE_DRIVE_HIGH_CONTROL, tx_gate_drive_high);
 
   uint16_t tx_gate_drive_low = 0 << 10 // when overcurrent is set to automatic retrying fault, fault is cleared after tRETRY
       | 0b10 << 8 // gate current drive time should be ~714ns, allow check to be 2000ns
-      | 0b1001 << 4 // high side rise drive current = 600mA
-      | 0b0100 << 0 // high side fall drive current = 600mA
+      | 0b0010 << 4 // high side rise drive current = 600mA
+      | 0b0010 << 0 // high side fall drive current = 600mA
       ;
   write_spi2(GATE_DRIVE_LOW_CONTROL, tx_gate_drive_low);
 

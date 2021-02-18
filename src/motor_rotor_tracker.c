@@ -46,7 +46,7 @@ static commutation_state_t get_commutation_state(void) {
   }
 }
 
-static void update_alpha_beta_filter(void) {
+static void update_alpha_beta_filter_callback(void) {
   last_commutation_state = get_commutation_state();
 
   float error = last_commutation_state - alpha_integrator_value;
@@ -66,9 +66,9 @@ static void setup_hall_sensors(void) {
   palSetLineMode(LINE_HALL_SENSOR_B, PAL_MODE_INPUT_PULLUP);
   palSetLineMode(LINE_HALL_SENSOR_C, PAL_MODE_INPUT_PULLUP);
 
-  palSetLineCallback(LINE_HALL_SENSOR_A, (palcallback_t)update_alpha_beta_filter, NULL);
-  palSetLineCallback(LINE_HALL_SENSOR_B, (palcallback_t)update_alpha_beta_filter, NULL);
-  palSetLineCallback(LINE_HALL_SENSOR_C, (palcallback_t)update_alpha_beta_filter, NULL);
+  palSetLineCallback(LINE_HALL_SENSOR_A, (palcallback_t)update_alpha_beta_filter_callback, NULL);
+  palSetLineCallback(LINE_HALL_SENSOR_B, (palcallback_t)update_alpha_beta_filter_callback, NULL);
+  palSetLineCallback(LINE_HALL_SENSOR_C, (palcallback_t)update_alpha_beta_filter_callback, NULL);
 
   palEnableLineEvent(LINE_HALL_SENSOR_A, PAL_EVENT_MODE_BOTH_EDGES);
   palEnableLineEvent(LINE_HALL_SENSOR_B, PAL_EVENT_MODE_BOTH_EDGES);
