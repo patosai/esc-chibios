@@ -7,7 +7,7 @@
 
 #define DRV_REFERENCE_VOLTAGE 3.3/2.0
 
-typedef enum uint8_t {
+typedef enum {
   FAULT_STATUS_1 = 0x00,
   FAULT_STATUS_2,
   DRIVER_CONTROL,
