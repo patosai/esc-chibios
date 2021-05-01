@@ -456,7 +456,7 @@
                                      PIN_PUPDR_PULLUP(GPIOB_PIN5) |         \
                                      PIN_PUPDR_PULLUP(GPIOB_PIN6) |        \
                                      PIN_PUPDR_PULLUP(GPIOB_PIN7) |         \
-                                     PIN_PUPDR_PULLDOWN(GPIOB_PIN8) |         \
+                                     PIN_PUPDR_FLOATING(GPIOB_PIN8) |         \
                                      PIN_PUPDR_PULLUP(GPIOB_PIN9) |        \
                                      PIN_PUPDR_PULLUP(GPIOB_PIN10) |       \
                                      PIN_PUPDR_PULLUP(GPIOB_PIN11) |        \
@@ -517,7 +517,7 @@
  * PC14 - PIN14                     (input pullup).
  * PC15 - PIN15                     (input pullup).
  */
-#define VAL_GPIOC_MODER             (PIN_MODE_INPUT(GPIOC_PIN0) |\
+#define VAL_GPIOC_MODER             (PIN_MODE_OUTPUT(GPIOC_PIN0) |\
                                      PIN_MODE_INPUT(GPIOC_PIN1) |           \
                                      PIN_MODE_INPUT(GPIOC_PIN2) |           \
                                      PIN_MODE_INPUT(GPIOC_PIN3) |        \
