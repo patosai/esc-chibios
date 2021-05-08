@@ -124,12 +124,12 @@ void drv8353rs_init(void) {
       ;
   write_spi2(OVERCURRENT_CONTROL, tx_overcurrent_control);
 
-  // maximum estimated I = 40A
-  // maximum common mode input range is +-0.15V, so max resistor size is 0.15V/40A = 3.75mOhm, power dissipation = I^2R = 6W..
-  // targeting power dissipation = 0.5W, R = P/I^2 = 0.5/(40^2) = 0.3125mOhm, so make sense resistor 0.5mOhm
-  // max SPx-SNx = IR = 40*0.0005 = 0.02V
+  // maximum estimated I = 30A
+  // maximum common mode input range is +-0.15V, so max resistor size is 0.15V/30A = 0.005mOhm, power dissipation = I^2R = 4.5W..
+  // targeting power dissipation = 0.5W, R = P/I^2 = 0.5/(30^2) = 0.555mOhm, so make sense resistor 0.5mOhm
+  // max SPx-SNx = IR = 30*0.0005 = 0.015V
   // SOx goes from 0.25 to Vref-0.25 = 3.3-0.25 = 3.05V, so 40V/V gain should be good
-  // SOx goes from (Vref/2)-(40*0.02) to (Vref/2)+(40*0.02) = 0.85V to 2.45V
+  // SOx goes from (Vref/2)-(40*0.015) to (Vref/2)+(40*0.015) = 1.05V to 2.25V
   uint8_t current_sense_amplification = 0b00;
   switch (DRV_CURRENT_SENSE_AMPLIFICATION) {
     case 5:
