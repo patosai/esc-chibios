@@ -81,6 +81,7 @@ int main(void) {
       );
     }
 
+    led_1_toggle();
     chThdSleepMilliseconds(500);
   }
 }

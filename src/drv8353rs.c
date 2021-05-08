@@ -89,7 +89,7 @@ void drv8353rs_init(void) {
       ;
   write_spi2(DRIVER_CONTROL, tx_driver_control);
 
-  // IRFS7530 has total gate charge at VDS=48V and VGS=12V of ~285nC
+  // SIR626 has max gate charge of ~102nC
   // let's say a dog can hear a max frequency of 50kHz
   // PWM will run at 50kHz so the dog doesn't hear it as much
   // APB2 runs at 84MHz and needs to be exact multiple of PWM freq, so make PWM freq 50kHz
@@ -97,18 +97,18 @@ void drv8353rs_init(void) {
   // every half period = 10us
   // 5% of time rising/5% of time falling = 500ns
   // I = Q/t
-  // minimum drive current = 285nC/500ns = 0.57A
-  // closest greater option is 600mA
+  // minimum drive current = 102nC/500ns = 0.204A
+  // closest greater option is 300mA
   uint16_t tx_gate_drive_high = 0b000 << 8 // don't lock settings just yet
-      | 0b0010 << 4 // high side rise drive current = 600mA
-      | 0b0010 << 0 // high side fall drive current = 600mA
+      | 0b0100 << 4 // high side rise drive current = 300mA
+      | 0b0011 << 0 // high side fall drive current = 300mA
       ;
   write_spi2(GATE_DRIVE_HIGH_CONTROL, tx_gate_drive_high);
 
   uint16_t tx_gate_drive_low = 0 << 10 // when overcurrent is set to automatic retrying fault, fault is cleared after tRETRY
-      | 0b10 << 8 // gate current drive time should be ~714ns, allow check to be 2000ns
-      | 0b0010 << 4 // high side rise drive current = 600mA
-      | 0b0010 << 0 // high side fall drive current = 600mA
+      | 0b01 << 8 // gate current drive time should be ~500ns, allow check to be 1000ns
+      | 0b0100 << 4 // low side rise drive current = 300mA
+      | 0b0011 << 0 // low side fall drive current = 300mA
       ;
   write_spi2(GATE_DRIVE_LOW_CONTROL, tx_gate_drive_low);
 
