@@ -112,15 +112,15 @@ void drv8353rs_init(void) {
       ;
   write_spi2(GATE_DRIVE_LOW_CONTROL, tx_gate_drive_low);
 
-  // IRFS7530 max RDS = 2.4mOhm at 180C
-  // maximum estimated I = 40A
-  // voltage across the sense resistor is V = IR = 0.096V
-  // set overcurrent voltage to 0.1V
+  // SIR626 max RDS = 1.7mOhm
+  // maximum estimated I = 30A
+  // voltage across the sense resistor is V = IR = 0.051V
+  // set overcurrent voltage to 0.06V
   uint16_t tx_overcurrent_control = 0 << 10 // overcurrent time is 8ms
       | 0b01 << 8 // 100ns dead time (time between switching of high and low MOSFET, prevents shoot-through)
       | 0b01 << 6 // overcurrent causes an automatic retrying fault
       | 0b10 << 4 // overcurrent deglitch time (minimum time of overcurrent before detection) = 4us
-      | 0b0100 << 0 // VDS overcurrent voltage = 0.1V
+      | 0b0000 << 0 // VDS overcurrent voltage = 0.06V
       ;
   write_spi2(OVERCURRENT_CONTROL, tx_overcurrent_control);
 
