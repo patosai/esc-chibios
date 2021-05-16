@@ -21,7 +21,7 @@ static void gpt3_callback(GPTDriver *driver) {
 // with 26" wheels, and 9 sets of rotor poles, 2500Hz update will allow up to 39mph motion
 // go to 3000Hz
 static const GPTConfig gpt3cfg = {
-  .frequency = 21000,
+  .frequency = 7000,
   .callback = gpt3_callback,
   .cr2 = 0,
   .dier = 0U
@@ -56,9 +56,22 @@ static void init(void) {
 int main(void) {
   init();
 
-  float adc_currents[3];
-
   while (true) {
+    if (!throttle_power_on()) {
+      log_println("throttle is off");
+      while (!throttle_power_on()) {
+        led_1_toggle();
+        chThdSleepMilliseconds(500);
+      }
+    }
+
+    log_println("ADC temp %.1fC, Vref %.2fV, throttle %.2f, commutation state %d",
+      adc_temp_celsius(),
+      adc_vref(),
+      throttle_percentage(),
+      motor_rotor_tracker_last_commutation_state()
+    );
+
     if (drv8353rs_has_fault()) {
       led_2_turn_on();
       log_error("DRV8353RS fault 1: 0x%x, fault 2: 0x%x",
@@ -67,18 +80,6 @@ int main(void) {
       );
     } else {
       led_2_turn_off();
-    }
-
-    if (!throttle_power_on()) {
-      log_println("throttle is off");
-    } else {
-      motor_get_phase_currents(adc_currents);
-      log_println("ADC temp %.1fC, Vref %.2fV, throttle %.2f, commutation state %d",
-        adc_temp_celsius(),
-        adc_vref(),
-        adc_throttle_percentage(),
-        motor_rotor_tracker_last_commutation_state()
-      );
     }
 
     led_1_toggle();

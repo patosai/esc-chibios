@@ -10,7 +10,7 @@
 // ADCPRE divider is set at APB2 / 4, so ADC clock is 10.5MHz
 
 // samples_saved must be 1 or an even number
-#define ADC_SAMPLES_SAVED_PER_CHANNEL 1
+#define ADC_SAMPLES_SAVED_PER_CHANNEL 4
 #define ADC1_CHANNELS 2
 #define ADC2_CHANNELS 2
 #define ADC3_CHANNELS 1
@@ -25,7 +25,29 @@ static adcsample_t adc1_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC1_CHANNELS];
 static adcsample_t adc2_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC2_CHANNELS];
 static adcsample_t adc3_samples[ADC_SAMPLES_SAVED_PER_CHANNEL * ADC3_CHANNELS];
 
-static float buffered_current_sense_voltages[ADC_MOTOR_PHASES_SAMPLED];
+static float get_adc_voltage(size_t adc_num, size_t sample_offset) {
+  adcsample_t *buffer = NULL;
+  size_t num_channels = 0;
+  if (adc_num == 1) {
+    buffer = adc1_samples;
+    num_channels = ADC1_CHANNELS;
+  } else if (adc_num == 2) {
+    buffer = adc2_samples;
+    num_channels = ADC2_CHANNELS;
+  } else if (adc_num == 3) {
+    buffer = adc3_samples;
+    num_channels = ADC3_CHANNELS;
+  }
+
+  chDbgAssert(buffer, "unknown adc_num");
+  chDbgAssert(sample_offset < num_channels, "invalid sample_offset");
+
+  adcsample_t out = 0;
+  for (size_t ii = 0; ii < ADC_SAMPLES_SAVED_PER_CHANNEL; ++ii) {
+    out += buffer[ii*num_channels + sample_offset] / ADC_SAMPLES_SAVED_PER_CHANNEL;
+  }
+  return out * ADC_VOLTAGE_FACTOR;
+}
 
 static uint8_t adcdriver_to_num(ADCDriver* adc) {
   if (adc->adc == ADC1) {
@@ -39,15 +61,10 @@ static uint8_t adcdriver_to_num(ADCDriver* adc) {
   return 0;
 }
 
-static void all_adcs_converted_callback(ADCDriver* adc) {
-  // using the MULTI trigger mode, this callback is called when all ADCs have sampled/converted
-  // should only be enabled on one of the ADCs, otherwise it will be called multiple times
-  (void)adc;
-  chSysLockFromISR();
-  buffered_current_sense_voltages[0] = adc2_samples[0];
-  buffered_current_sense_voltages[1] = adc3_samples[0];
-  chSysUnlockFromISR();
-}
+//static void adc_common_callback(ADCDriver* adc) {
+//  // using the MULTI trigger mode, this callback is called when all ADCs have sampled/converted
+//  // should only be enabled on one of the ADCs, otherwise it will be called multiple times
+//}
 
 static void adc_common_error_callback(ADCDriver *adc, adcerror_t err) {
   log_println_in_interrupt("ADC %d error %d", adcdriver_to_num(adc), err);
@@ -58,7 +75,7 @@ static const ADCConversionGroup adc1_config = {
   // circular buffer needs to be enabled for ADC triggering to work
   .circular = TRUE,
   .num_channels = ADC1_CHANNELS,
-  .end_cb = all_adcs_converted_callback,
+  .end_cb = NULL,
   .error_cb = adc_common_error_callback,
   .cr1 = ADC_CR1_SCAN, // set scan mode so ADC will convert SQR1/2/3 channels
   // https://www.st.com/content/ccc/resource/technical/document/reference_manual/3d/6d/5a/66/b4/99/40/d4/DM00031020.pdf/files/DM00031020.pdf/jcr:content/translations/en.DM00031020.pdf
@@ -76,7 +93,7 @@ static const ADCConversionGroup adc1_config = {
   .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_VREFINT) | ADC_SQR3_SQ2_N(ADC_CHANNEL_SENSOR),
 };
 
-// ADC 2 samples PC3 (phase B voltage) and PA6 (throttle)
+// ADC 2 samples PC2 (phase B voltage) and PA4 (throttle)
 static const ADCConversionGroup adc2_config = {
   .circular = TRUE,
   .num_channels = ADC2_CHANNELS,
@@ -88,10 +105,10 @@ static const ADCConversionGroup adc2_config = {
   .smpr2 = ADC_SMPR2_SMP_AN6(ADC_SAMPLE_480),
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN13) | ADC_SQR3_SQ2_N(ADC_CHANNEL_IN6),
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12) | ADC_SQR3_SQ2_N(ADC_CHANNEL_IN4),
 };
 
-// ADC 3 samples PC2 (phase C voltage)
+// ADC 3 samples PC1 (phase C voltage)
 static const ADCConversionGroup adc3_config = {
   .circular = TRUE,
   .num_channels = ADC3_CHANNELS,
@@ -103,7 +120,7 @@ static const ADCConversionGroup adc3_config = {
   .smpr2 = 0,
   .sqr1 = 0,
   .sqr2 = 0,
-  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN12),
+  .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN11),
 };
 
 static void setup_pin_modes(void) {
@@ -176,14 +193,15 @@ float adc_temp_celsius(void) {
   // constant values from F407VG datasheet
   const float V_25 = 0.76; // voltage at 25C
   const float average_slope = 0.0025; // 2.5mV/C
-  return (((adc1_samples[1] * ADC_VOLTAGE_FACTOR) - V_25) / average_slope) + 25;
+  return ((get_adc_voltage(1, 1) - V_25) / average_slope) + 25;
 }
 
 float adc_throttle_percentage(void) {
   // 0.85 - 2.55V when measured
   // say it's 0.87 to 2.53
   // range = 1.66V
-  float voltage = adc2_samples[1] * ADC_VOLTAGE_FACTOR;
+  float voltage = get_adc_voltage(2, 1);
+
   float percentage = (voltage - 0.87)/1.66*100;
   if (percentage < 0) {
     percentage = 0;
@@ -194,12 +212,12 @@ float adc_throttle_percentage(void) {
 }
 
 float adc_vref(void) {
-  return adc1_samples[0] * ADC_VOLTAGE_FACTOR;
+  return get_adc_voltage(1, 0);
 }
 
 void adc_get_phase_voltages(float *buf) {
   chSysLock();
-  buf[0] = buffered_current_sense_voltages[0] * ADC_VOLTAGE_FACTOR;
-  buf[1] = buffered_current_sense_voltages[1] * ADC_VOLTAGE_FACTOR;
+  buf[0] = get_adc_voltage(2, 0);
+  buf[1] = get_adc_voltage(3, 0);
   chSysUnlock();
 }
